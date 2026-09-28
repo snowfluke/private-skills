@@ -1,17 +1,17 @@
 ---
 name: pmt-tatanan-code-review
-description: Review a pull request in the Tatanan repository (PT-Perkasa-Pilar-Utama/tatanan) as its tech lead. Extends the code-review skill with Tatanan's docs, file-viewed marking, Drizzle migration checks, AC wording checks, and the reviewer sign-off. Use for Tatanan PRs only; for any other repository use code-review.
+description: Review a pull request in the Tatanan repository (PT-Perkasa-Pilar-Utama/tatanan) as its tech lead. Extends the lead-review skill with Tatanan's docs, file-viewed marking, Drizzle migration checks, AC wording checks, and the reviewer sign-off. Use for Tatanan PRs only; for any other repository use lead-review.
 ---
 
 # Tatanan Code Review
 
-This skill adds Tatanan steps to `code-review`. It does not replace any of it.
+This skill adds Tatanan steps to `lead-review`. It does not replace any of it.
 
-1. Find the installed `code-review` skill. It sits in the same skills directory as this skill, for example `~/.claude/skills/code-review/`. Read its `SKILL.md` and follow it in full.
-2. Do the steps below at the `code-review` step each one names.
-3. The finding format, severity, verdict, rounds, and `review_body.py check` come from `code-review` only. This file changes none of them.
+1. Find the installed `lead-review` skill. It sits in the same skills directory as this skill, for example `~/.claude/skills/lead-review/`. Read its `SKILL.md` and follow it in full.
+2. Do the steps below at the `lead-review` step each one names.
+3. The finding format, severity, verdict, rounds, and `review_body.py check` come from `lead-review` only. This file changes none of them.
 
-The scripts are `scripts/review_body.py` and `scripts/check_ac_refs.py` inside that `code-review` directory.
+The scripts are `scripts/review_body.py` and `scripts/check_ac_refs.py` inside that `lead-review` directory.
 
 ## Project
 
@@ -24,7 +24,7 @@ The scripts are `scripts/review_body.py` and `scripts/check_ac_refs.py` inside t
 | Gate | `bun fmt && bun lint && bun type-check && bun test` |
 | Frontend tests | Optional. A missing frontend test is not a finding. |
 
-## At code-review step 1: the standards
+## At lead-review step 1: the standards
 
 | Document | Use |
 | --- | --- |
@@ -38,7 +38,7 @@ The scripts are `scripts/review_body.py` and `scripts/check_ac_refs.py` inside t
 
 A task can depend on another task. A mock or a TODO is not a finding when the task card defers that work.
 
-## At code-review step 3: mark the files viewed
+## At lead-review step 3: mark the files viewed
 
 Before you read any code, run this from the repo root, not the worktree:
 
@@ -48,7 +48,7 @@ bash /Users/vexeee/Documents/project/tatanan/sandbox/mark-viewed.sh <number>
 
 It marks every changed file as viewed on GitHub's "Files changed" tab.
 
-## At code-review step 5: extra review steps
+## At lead-review step 5: extra review steps
 
 ### Migrations
 
@@ -109,9 +109,9 @@ Trace each THEN clause to the code:
 - **Real data.** If THEN names dynamic data, it must come from the data source, not a hard-coded string.
 - **Role.** If GIVEN names a role, RBAC must keep other roles out.
 
-An unmet THEN clause is a BLOCKER. Write it in the `code-review` format: `Rule` links the AC row and quotes the THEN clause, and `Problem` quotes what the code shows.
+An unmet THEN clause is a BLOCKER. Write it in the `lead-review` format: `Rule` links the AC row and quotes the THEN clause, and `Problem` quotes what the code shows.
 
-## At code-review step 10: the PR description and sign-off
+## At lead-review step 10: the PR description and sign-off
 
 1. **Description content.** The description must have the Task ID, the US reference (see `TASK_BREAKDOWN.md`), what changed, why, and how to test. A missing item is a BLOCKER. Its Rule quotes the PR template section that asks for it.
 2. **Self-review box.** The template has one box: "I have read and verified every applicable item in `CODE_REVIEW_CHECKLIST.md`." If the diff breaks a checklist item, that item is already a finding. Uncheck the box with `gh pr edit <number> --body-file <file>`.
@@ -134,7 +134,7 @@ Do this only when the user asks to edit a specific review. Normal rounds post a 
    REVIEW_ID=$(gh api "repos/PT-Perkasa-Pilar-Utama/tatanan/pulls/<number>/reviews" --jq '.[-1].id')
    ```
 
-2. Write the new body to `/tmp/pr<number>-review.md`. Run `code-review` step 9 on it (verify, then check with `--repo PT-Perkasa-Pilar-Utama/tatanan`) until the check prints `OK`.
+2. Write the new body to `/tmp/pr<number>-review.md`. Run `lead-review` step 9 on it (verify, then check with `--repo PT-Perkasa-Pilar-Utama/tatanan`) until the check prints `OK`.
 3. Replace the body:
 
    ```bash
