@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>PRODUCT launch</title>
+    <!-- Vendor GSAP locally (assets/vendor/gsap.min.js) so renders never depend on the network. -->
+    <script src="assets/vendor/gsap.min.js"></script>
+    <script src="assets/caption.js"></script>
+    <link rel="stylesheet" href="assets/theme.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--canvas); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--canvas); }
+      /* One background under every scene: a slow-drifting dot grid and two glows. */
+      #bg { position: absolute; inset: 0; overflow: hidden; }
+      #dots { position: absolute; left: -60px; top: -60px; width: 2040px; height: 1200px;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1.6px, transparent 1.6px); background-size: 30px 30px; }
+      #glow-a { position: absolute; left: 980px; top: -160px; width: 1200px; height: 1200px; border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--accent) 40%, transparent) 0%, transparent 62%); }
+      #glow-b { position: absolute; left: -380px; top: 420px; width: 1000px; height: 1000px; border-radius: 50%;
+        background: radial-gradient(circle, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 60%); }
+      #vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, transparent 55%, rgba(0, 0, 0, 0.6) 100%); }
+      .scene { position: absolute; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="0" data-width="1920" data-height="1080">
+      <div id="bg" aria-hidden="true">
+        <div id="glow-a"></div>
+        <div id="glow-b"></div>
+        <div id="dots"></div>
+        <div id="vignette"></div>
+      </div>
+
+      <!-- scenes:begin -->
+      <!-- scenes:end -->
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#dots", { x: 0, y: 0 }, { x: 30, y: 30, duration: 0 /*total*/, ease: "none" }, 0);
+      tl.fromTo("#glow-a", { x: 0, y: 0, scale: 1 }, { x: -560, y: 180, scale: 1.2, duration: 0 /*half*/, ease: "sine.inOut" }, 0);
+      tl.fromTo("#glow-b", { x: 0, y: 0 }, { x: 900, y: -300, duration: 0 /*total*/, ease: "sine.inOut" }, 0);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

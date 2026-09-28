@@ -1,0 +1,445 @@
+{
+ "bpm": 140,
+ "fps": 30,
+ "beats": 72,
+ "sections": [
+  {
+   "id": "flood",
+   "start": 0,
+   "len": 8
+  },
+  {
+   "id": "build",
+   "start": 8,
+   "len": 8
+  },
+  {
+   "id": "match",
+   "start": 16,
+   "len": 8
+  },
+  {
+   "id": "pillars",
+   "start": 24,
+   "len": 20
+  },
+  {
+   "id": "montage",
+   "start": 44,
+   "len": 12
+  },
+  {
+   "id": "logo",
+   "start": 56,
+   "len": 16
+  }
+ ],
+ "cues": [
+  {
+   "beat": 0,
+   "sfx": "hit"
+  },
+  {
+   "beat": 0,
+   "sfx": "zip"
+  },
+  {
+   "beat": 1.4,
+   "sfx": "slam"
+  },
+  {
+   "beat": 2.9,
+   "sfx": "swish"
+  },
+  {
+   "beat": 5.9,
+   "sfx": "suck"
+  },
+  {
+   "beat": 7,
+   "sfx": "whoosh"
+  },
+  {
+   "beat": 8,
+   "sfx": "pop"
+  },
+  {
+   "beat": 8.1,
+   "sfx": "pop"
+  },
+  {
+   "beat": 9.2,
+   "sfx": "zip"
+  },
+  {
+   "beat": 9.3,
+   "sfx": "zip"
+  },
+  {
+   "beat": 9.5,
+   "sfx": "pop"
+  },
+  {
+   "beat": 9.6,
+   "sfx": "pop"
+  },
+  {
+   "beat": 10.6,
+   "sfx": "zip"
+  },
+  {
+   "beat": 10.7,
+   "sfx": "zip"
+  },
+  {
+   "beat": 11,
+   "sfx": "pop"
+  },
+  {
+   "beat": 11.7,
+   "sfx": "zip"
+  },
+  {
+   "beat": 12,
+   "sfx": "pop"
+  },
+  {
+   "beat": 12.7,
+   "sfx": "zip"
+  },
+  {
+   "beat": 13,
+   "sfx": "pop"
+  },
+  {
+   "beat": 13.5,
+   "sfx": "blips"
+  },
+  {
+   "beat": 14,
+   "sfx": "whoosh"
+  },
+  {
+   "beat": 15,
+   "sfx": "suck"
+  },
+  {
+   "beat": 16,
+   "sfx": "hit"
+  },
+  {
+   "beat": 17.0,
+   "sfx": "click"
+  },
+  {
+   "beat": 17.3,
+   "sfx": "pop"
+  },
+  {
+   "beat": 17.5,
+   "sfx": "click"
+  },
+  {
+   "beat": 17.8,
+   "sfx": "pop"
+  },
+  {
+   "beat": 18.0,
+   "sfx": "click"
+  },
+  {
+   "beat": 18.3,
+   "sfx": "pop"
+  },
+  {
+   "beat": 18.5,
+   "sfx": "click"
+  },
+  {
+   "beat": 18.8,
+   "sfx": "pop"
+  },
+  {
+   "beat": 19.2,
+   "sfx": "thud"
+  },
+  {
+   "beat": 19.7,
+   "sfx": "thud"
+  },
+  {
+   "beat": 20.3,
+   "sfx": "slam"
+  },
+  {
+   "beat": 20.8,
+   "sfx": "slam"
+  },
+  {
+   "beat": 21.4,
+   "sfx": "shimmer"
+  },
+  {
+   "beat": 23,
+   "sfx": "suck"
+  },
+  {
+   "beat": 24,
+   "sfx": "hit"
+  },
+  {
+   "beat": 24,
+   "sfx": "zip"
+  },
+  {
+   "beat": 27.25,
+   "sfx": "swish"
+  },
+  {
+   "beat": 28,
+   "sfx": "hit"
+  },
+  {
+   "beat": 28.5,
+   "sfx": "boing"
+  },
+  {
+   "beat": 29.5,
+   "sfx": "boing"
+  },
+  {
+   "beat": 30.5,
+   "sfx": "boing"
+  },
+  {
+   "beat": 31.5,
+   "sfx": "click"
+  },
+  {
+   "beat": 32,
+   "sfx": "hit"
+  },
+  {
+   "beat": 32.1,
+   "sfx": "sweep"
+  },
+  {
+   "beat": 35,
+   "sfx": "suck"
+  },
+  {
+   "beat": 36,
+   "sfx": "hit"
+  },
+  {
+   "beat": 36,
+   "sfx": "echo"
+  },
+  {
+   "beat": 38,
+   "sfx": "echo"
+  },
+  {
+   "beat": 39.3,
+   "sfx": "swish"
+  },
+  {
+   "beat": 40,
+   "sfx": "hit"
+  },
+  {
+   "beat": 40,
+   "sfx": "blips"
+  },
+  {
+   "beat": 41.6,
+   "sfx": "draw"
+  },
+  {
+   "beat": 42.8,
+   "sfx": "whoosh"
+  },
+  {
+   "beat": 44.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 44,
+   "sfx": "hit"
+  },
+  {
+   "beat": 45.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 46.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 47.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 48.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 48.5,
+   "sfx": "flip"
+  },
+  {
+   "beat": 49.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 49.5,
+   "sfx": "flip"
+  },
+  {
+   "beat": 50.0,
+   "sfx": "flip"
+  },
+  {
+   "beat": 50.5,
+   "sfx": "flip"
+  },
+  {
+   "beat": 51.0,
+   "sfx": "tick"
+  },
+  {
+   "beat": 51.25,
+   "sfx": "tick"
+  },
+  {
+   "beat": 51.5,
+   "sfx": "tick"
+  },
+  {
+   "beat": 51.75,
+   "sfx": "tick"
+  },
+  {
+   "beat": 52.0,
+   "sfx": "tick"
+  },
+  {
+   "beat": 52,
+   "sfx": "sweep"
+  },
+  {
+   "beat": 52.25,
+   "sfx": "tick"
+  },
+  {
+   "beat": 52.5,
+   "sfx": "tick"
+  },
+  {
+   "beat": 52.75,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.0,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.125,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.25,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.375,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.5,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.625,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.75,
+   "sfx": "tick"
+  },
+  {
+   "beat": 53.875,
+   "sfx": "tick"
+  },
+  {
+   "beat": 54.1,
+   "sfx": "suck"
+  },
+  {
+   "beat": 54.95,
+   "sfx": "pop"
+  },
+  {
+   "beat": 56,
+   "sfx": "pop"
+  },
+  {
+   "beat": 56.25,
+   "sfx": "pop"
+  },
+  {
+   "beat": 56.7,
+   "sfx": "pop"
+  },
+  {
+   "beat": 57.05,
+   "sfx": "click"
+  },
+  {
+   "beat": 57.35,
+   "sfx": "pop"
+  },
+  {
+   "beat": 58,
+   "sfx": "impact"
+  },
+  {
+   "beat": 58,
+   "sfx": "chime"
+  },
+  {
+   "beat": 59.1,
+   "sfx": "swish"
+  },
+  {
+   "beat": 60.9,
+   "sfx": "pop"
+  },
+  {
+   "beat": 61.9,
+   "sfx": "pop"
+  },
+  {
+   "beat": 64.6,
+   "sfx": "click"
+  },
+  {
+   "beat": 66.2,
+   "sfx": "swish"
+  },
+  {
+   "beat": 67.8,
+   "sfx": "suck"
+  },
+  {
+   "beat": 68.3,
+   "sfx": "zip"
+  }
+ ],
+ "handoffs": [
+  28,
+  32,
+  36,
+  40
+ ]
+}
