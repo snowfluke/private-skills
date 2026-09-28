@@ -1,5 +1,5 @@
 ---
-name: pmt-tatanan-code-review
+name: pmt-tatanan-lead-review
 description: Review a pull request in the Tatanan repository (PT-Perkasa-Pilar-Utama/tatanan) as its tech lead. Extends the lead-review skill with Tatanan's docs, file-viewed marking, Drizzle migration checks, AC wording checks, and the reviewer sign-off. Use for Tatanan PRs only; for any other repository use lead-review.
 ---
 
