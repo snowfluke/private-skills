@@ -1,31 +1,86 @@
-"""Synthesize the Beaverflow reel score: 140 BPM in D minor plus the timeline's sound cues.
+"""Synthesize the reel score: the film's own music plus the timeline's sound cues.
 
 Picture and sound share src/timeline.json, so every cue lands on the beat its motion does.
 Deterministic: seeded noise, no samples. The reel loops: everything is rendered with a two-bar
 tail, and the tail is folded back onto the start, so reverb and ringing notes cross the loop point.
 
+The music comes from the "music" block in src/timeline.json, copied from DIRECTION.json (see
+music.py next to this file). Its bpm must equal the timeline's bpm. Each section carries an
+"energy" role that sets the arrangement: intro, build, drop, break, logo, outro. An optional
+"gate": [from_beat, to_beat] silences the music for a breath; the effects stay.
+
     uv run --with numpy --with scipy python audio/score.py  ->  public/score.wav (loudness -14 LUFS)
+    python3 audio/score.py --self-test
 """
 
 import json
 import os
 import subprocess
+import sys
 
-import numpy as np
-from scipy.io import wavfile
-from scipy.signal import butter, sosfilt
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import music as M  # noqa: E402  (music.py sits next to this file)
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ENERGY = ("intro", "build", "drop", "break", "logo", "outro")
+
+
+def self_test():
+    """Two reels with different music blocks must differ; the same block twice must match; length is frame-exact."""
+    import tempfile
+    blocks = [{"bpm": 118, "root": "E", "mode": "phrygian", "progression": ["i", "II", "i", "VII"],
+               "preset": "half-time", "swing": 0.0, "timbre": "metal"},
+              {"bpm": 118, "root": "G", "mode": "mixolydian", "progression": ["I", "VII", "IV", "I"],
+               "preset": "motorik", "swing": 0.08, "timbre": "soft"}]
+    outs = []
+    with tempfile.TemporaryDirectory() as d:
+        for n, block in enumerate(blocks + blocks[:1]):
+            root = os.path.join(d, str(n))
+            os.makedirs(os.path.join(root, "src"))
+            os.makedirs(os.path.join(root, "public"))
+            tl = {"bpm": 118, "fps": 30, "beats": 32, "music": block,
+                  "sections": [{"id": "a", "start": 0, "len": 8, "energy": "intro"},
+                               {"id": "b", "start": 8, "len": 16, "energy": "drop"},
+                               {"id": "c", "start": 24, "len": 8, "energy": "logo"}],
+                  "cues": [{"beat": 0, "sfx": "hit"}, {"beat": 8, "sfx": "pop"}, {"beat": 24, "sfx": "impact"}]}
+            json.dump(tl, open(os.path.join(root, "src", "timeline.json"), "w"))
+            subprocess.run([sys.executable, os.path.abspath(__file__)], env={**os.environ, "SCORE_ROOT": root, "SCORE_RAW": "1"},
+                           check=True, capture_output=True)
+            outs.append(open(os.path.join(root, "public", "score.wav"), "rb").read())
+    assert outs[0] != outs[1], "two different music blocks produced the same score"
+    assert outs[0] == outs[2], "the same music block produced two different scores"
+    frames = round(32 * 60 / 118 * 30)
+    assert (len(outs[0]) - 44) // 4 == round(frames / 30 * 48000), "the loop must last exactly the picture's frames"
+    print("self-test OK")
+
+
+if __name__ == "__main__" and sys.argv[1:] == ["--self-test"]:
+    self_test()
+    sys.exit(0)
+
+import numpy as np  # noqa: E402
+from scipy.io import wavfile  # noqa: E402
+from scipy.signal import butter, sosfilt  # noqa: E402
+
+ROOT = os.environ.get("SCORE_ROOT") or os.path.dirname(HERE)
 TL = json.load(open(os.path.join(ROOT, "src", "timeline.json")))
+MCFG = TL.get("music")
+KEY, PRESET, _BPM, SWING, TIMBRE = M.load(MCFG)
+if float(MCFG["bpm"]) != float(TL["bpm"]):
+    sys.exit(f"music bpm {MCFG['bpm']} differs from the timeline bpm {TL['bpm']}; the picture and the score must share one tempo")
+for sct in TL["sections"]:
+    if sct.get("energy") not in ENERGY:
+        sys.exit(f"section {sct['id']!r} needs \"energy\": one of {', '.join(ENERGY)}")
 SR = 48000
 # The picture is a whole number of frames, so the loop length is too; the beat stretches by <0.04%
-# (139.96 BPM) so picture and sound wrap together.
+# so picture and sound wrap together.
 LEN = round(TL["beats"] * 60 / TL["bpm"] * TL["fps"]) / TL["fps"]
 BEAT = LEN / TL["beats"]
 LOOP_N = int(round(SR * LEN))
 TAIL = 8 * BEAT
 N = LOOP_N + int(SR * TAIL)
-rng = np.random.default_rng(140)
+SEED = sum(json.dumps(MCFG, sort_keys=True).encode())
+rng = np.random.default_rng(SEED)
 
 drums = np.zeros((N, 2))
 synth = np.zeros((N, 2))
@@ -166,9 +221,12 @@ def riser(d):
     return lp(x, 12000) * 0.8 + sweep(200, 1400, d, 2.0) * np.linspace(0, 1, int(d * SR)) ** 2 * 0.25
 
 
-# ---------------------------------------------------------------- sound effects (D minor)
+# ---------------------------------------------------------------- sound effects (in the reel's key)
 
-D5, F5, A5, C6, D6 = 74, 77, 81, 84, 86
+# Tonic, third, fifth, seventh and octave of the key, around MIDI octave 5. The names keep the
+# roles, not the pitches.
+D5, F5, A5, C6, D6 = (KEY.note(d, 5) for d in (0, 2, 4, 6, 7))
+LOW, HIGH = KEY.note(0, 4), KEY.note(7, 5)
 
 
 def fx_whoosh(d=0.45, up=True):
@@ -245,7 +303,7 @@ def fx_thud():
 
 def fx_draw():
     d = 0.6
-    return sweep(hz(62), hz(86), d, 1.5) * env(int(d * SR), 0.05, d, 0.0) * 0.4 + fx_whoosh(d) * 0.4
+    return sweep(hz(LOW), hz(HIGH), d, 1.5) * env(int(d * SR), 0.05, d, 0.0) * 0.4 + fx_whoosh(d) * 0.4
 
 
 def fx_zap():
@@ -272,7 +330,7 @@ def fx_sparkle():
 
 def fx_boing():
     t = t_axis(0.6)
-    f = hz(62) * (1 + 0.5 * np.sin(2 * np.pi * 9 * t) * np.exp(-t * 5))
+    f = hz(LOW) * (1 + 0.5 * np.sin(2 * np.pi * 9 * t) * np.exp(-t * 5))
     return np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 4) * 0.6
 
 
@@ -331,43 +389,73 @@ for cue in TL["cues"]:
         place(sfx, fn(), at, gain, pan)
 
 # ---------------------------------------------------------------- music
+# Every bar takes its arrangement from the energy role of the section it falls in. Harmony,
+# groove and lead come from the music block; the lead motif comes from a seed of that block, so
+# two reels in the same key still get different melodies.
 
-CH = {"Dm": [62, 65, 69], "Bb": [62, 65, 70], "F": [60, 65, 69], "C": [60, 64, 67]}
-ROOTS = {"Dm": 38, "Bb": 34, "F": 41, "C": 36}
-PROG = ["Dm", "Bb", "F", "C"]
-ARP = [0, 12, 7, 12, 3, 12, 7, 15]
-LEAD = [(0, 74, 0.75), (0.75, 77, 0.75), (1.5, 81, 0.5), (2, 79, 0.75), (2.75, 77, 0.5), (3.25, 76, 0.75)]
+PROG = MCFG["progression"]
+SNARE = {"clap": clap, "snare": snare, "rim": lambda: fx_blip(96, 0.03, 0.7)}[PRESET["snare_kind"]]
+STEP = 0.25  # beats
+MOTIF = [(0, 0.75), (0.75, 0.75), (1.5, 0.5), (2, 0.75), (2.75, 0.5), (3.25, 0.75)]
+MOTIF_DEG = [int(d) for d in rng.choice([0, 2, 4, 5, 7, 9], size=len(MOTIF))]
 kicks = []
 
+# energy -> drum density, arp level, lead on, pad brightness factor
+ROLE = {"intro": (0.3, 0.25, False, 0.6), "build": (0.6, 0.5, False, 0.9), "drop": (1.0, 0.9, True, 1.2),
+        "break": (0.15, 0.6, False, 1.4), "logo": (0.6, 0.7, False, 1.6), "outro": (0.3, 0.4, False, 0.8)}
 
-def drums_bar(bar, kick_on=(0, 1, 2, 3), clap_on=(1, 3), hats=16, open_hats=True, lvl=1.0):
+
+def role_at(beat):
+    for sct in TL["sections"]:
+        if sct["start"] <= beat < sct["start"] + sct["len"]:
+            return sct["energy"]
+    return "outro"
+
+
+def at_step(bar, s):
+    return sec(bar * 4 + s * STEP + (SWING * STEP if s % 2 else 0.0))
+
+
+def drums_bar(bar, density):
+    if density >= 0.3:
+        for s in PRESET["kick"]:
+            place(drums, kick(), at_step(bar, s), 0.9)
+            kicks.append(at_step(bar, s))
+    if density >= 0.6:
+        for s in PRESET["snare"]:
+            place(drums, SNARE(), at_step(bar, s), 0.55, 0.05)
+    if density >= 0.15:
+        for s in PRESET["hats"]:
+            place(drums, hat(), at_step(bar, s), 0.16 if s % 2 else 0.24, -0.25)
+    if density >= 0.9:
+        for s in PRESET["open"]:
+            place(drums, hat(True), at_step(bar, s), 0.2, 0.25)
+
+
+def lead(n, d):
+    kind = PRESET["lead"]
+    if kind == "saw":
+        return supersaw(n, d)
+    if kind == "pluck":
+        return pluck(n, d, 0.8)
+    return bell(hz(n), d * 2.0, 1.4 if kind == "bell" else 0.8) * 0.6
+
+
+def harmony_bar(bar, arp, bright, with_lead):
     at = sec(bar * 4)
-    for q in kick_on:
-        place(drums, kick(), at + sec(q), 0.9 * lvl)
-        kicks.append(at + sec(q))
-    for q in clap_on:
-        place(drums, clap(), at + sec(q), 0.55 * lvl, 0.05)
-    if open_hats:
-        for q in range(4):
-            place(drums, hat(True), at + sec(q + 0.5), 0.2 * lvl, 0.25)
-    for k in range(hats):
-        place(drums, hat(), at + sec(k * 4 / hats), (0.16 if k % 2 else 0.24) * lvl, -0.25)
-
-
-def harmony_bar(bar, bass_on=True, arp=0.6, pad_bright=1800, pad_lvl=0.26, lead=False):
-    at = sec(bar * 4)
-    ch = PROG[bar % 4]
-    if bass_on:
-        for e in range(8):
-            place(synth, bass(ROOTS[ch] + (12 if e % 4 == 3 else 0), sec(0.45)), at + sec(e * 0.5), 0.5 if e % 2 else 0.32)
+    numeral = PROG[bar % len(PROG)]
+    deg = M.parse_numeral(numeral)[0]
+    for s, steps, octave in PRESET["bass"]:
+        place(synth, bass(KEY.bass_root(numeral, 2) + 12 * octave, sec(steps * STEP * 0.95)), at_step(bar, s), 0.45)
     if arp:
-        for k in range(16):
-            place(synth, pluck(CH[ch][0] + ARP[k % 8] + 12, 0.18, arp + 0.4 * (k % 4 == 0)), at + sec(k / 4), 0.2, np.sin(k * 1.1) * 0.5)
-    if pad_lvl:
-        place(synth, pad(CH[ch], sec(4) + 0.3, pad_bright), at, pad_lvl)
-    if lead:
-        for off, n, dur in LEAD:
-            place(synth, supersaw(n + (2 if bar % 4 == 1 else 0), sec(dur)), at + sec(off), 0.3)
+        rate = PRESET["arp_rate"]
+        for k, s in enumerate(range(0, 16, rate)):
+            n = KEY.note(deg + PRESET["arp"][k % len(PRESET["arp"])], 5)
+            place(synth, pluck(n, sec(rate * STEP), arp), at_step(bar, s), 0.2, np.sin(k * 1.1) * 0.5)
+    place(synth, pad(KEY.chord(numeral, 4), sec(4) + 0.3, PRESET["pad"] * bright), at, 0.26)
+    if with_lead:
+        for (off, dur), d in zip(MOTIF, MOTIF_DEG):
+            place(synth, lead(KEY.note(d, 5), sec(dur)), at + sec(off), 0.28)
 
 
 def roll(start, length, lvl=0.5):
@@ -375,43 +463,26 @@ def roll(start, length, lvl=0.5):
         place(drums, snare(), sec(start + length * (k / (length * 6)) ** 0.85), 0.06 + lvl * k / (length * 6))
 
 
-# Bars 0-1 (Flood): the loop line splits on a hit; the groove comes in filtered.
-for bar in (0, 1):
-    drums_bar(bar, clap_on=(), open_hats=bar == 1, lvl=0.85)
-    harmony_bar(bar, arp=0.25, pad_bright=900 + 500 * bar)
-place(synth, riser(sec(2)), sec(6), 0.4)
-# Bars 2-5 (Build, Match): the full groove.
-for bar in range(2, 6):
-    drums_bar(bar)
-    harmony_bar(bar, arp=0.5 + 0.1 * bar)
-roll(23, 1, 0.45)
-# Bars 6-10 (Pillars): the drop, with the lead; a hit on every pillar change.
-for bar in range(6, 11):
-    drums_bar(bar, hats=16)
-    harmony_bar(bar, lead=True, arp=0.9)
-# Bars 11-13 (Montage): the cuts speed up over a full groove with the lead; a riser and a roll drive
-# into the collapse at 54, then the music drops out (GATE below) while the dot holds.
-for bar in range(11, 14):
-    drums_bar(bar, hats=16, lvl=0.95)
-    harmony_bar(bar, lead=bar < 13, arp=0.9)
-place(synth, riser(sec(2)), sec(52), 0.55)
-roll(52, 2, 0.6)
-GATE = (54.15, 55.95)  # beats: the breath between the collapse and the logo
-# Bars 14-17 (Logo): a fill into the logo hit on beat 58, the groove rides the lockup, the chord rings
-# while the mark squashes, and a riser resolves onto beat 0 of the next loop.
-drums_bar(14, kick_on=(0, 1), clap_on=(), hats=8, open_hats=False, lvl=0.7)
-LOGO = 58
-place(synth, pad([50, 62, 65, 69, 76], sec(8) + 0.6, 2600), sec(LOGO), 0.5)
-place(synth, bass(38, sec(4)), sec(LOGO), 0.45)
-for k, n in enumerate([74, 77, 81, 86, 88, 93]):
-    place(synth, bell(hz(n), 2.2, 1.0), sec(LOGO) + k * 0.09, 0.22, -0.5 + k * 0.2)
-for bar in (15, 16):
-    drums_bar(bar, clap_on=(1, 3), hats=16 if bar == 15 else 8, lvl=0.85 if bar == 15 else 0.7)
-    harmony_bar(bar, arp=0.7, pad_lvl=0.2)
-drums_bar(17, kick_on=(0,), clap_on=(), hats=0, open_hats=False, lvl=0.8)
-harmony_bar(17, bass_on=False, arp=0.4, pad_bright=1400, pad_lvl=0.3)
-place(synth, riser(sec(2)), sec(70), 0.5)
-roll(70.5, 1.5, 0.5)
+BARS = int(np.ceil(TL["beats"] / 4))
+for bar in range(BARS):
+    density, arp, with_lead, bright = ROLE[role_at(bar * 4)]
+    drums_bar(bar, density)
+    harmony_bar(bar, arp, bright, with_lead)
+
+# Section changes: a riser into every drop, and a hit with a ringing chord on every logo.
+for sct in TL["sections"]:
+    if sct["energy"] == "drop" and sct["start"] >= 2:
+        place(synth, riser(sec(2)), sec(sct["start"] - 2), 0.45)
+    if sct["energy"] == "logo":
+        place(synth, pad(KEY.chord("i9", 3) + [KEY.note(0, 5)], sec(8) + 0.6, PRESET["pad"] * 1.8), sec(sct["start"]), 0.5)
+        place(synth, bass(KEY.note(0, 2), sec(4)), sec(sct["start"]), 0.45)
+        for k, d in enumerate([0, 2, 4, 7, 9, 11]):
+            place(synth, bell(hz(KEY.note(d, 5)), 2.2, 1.0), sec(sct["start"]) + k * 0.09, 0.22, -0.5 + k * 0.2)
+
+# The loop: a riser and a roll resolve onto beat 0 of the next pass.
+place(synth, riser(sec(2)), sec(TL["beats"] - 2), 0.5)
+roll(TL["beats"] - 1.5, 1.5, 0.5)
+GATE = tuple(TL["gate"]) if "gate" in TL else None
 
 # ---------------------------------------------------------------- mix
 
@@ -434,15 +505,16 @@ for k in kicks:
         duck[i : i + seg] = np.minimum(duck[i : i + seg], 1 - 0.65 * np.exp(-np.arange(seg) / SR * 11))
 
 gate = np.ones(N)
-g0, g1, fade = int(sec(GATE[0]) * SR), int(sec(GATE[1]) * SR), int(0.03 * SR)
-gate[g0:g1] = 0
-gate[g0 - fade:g0] = np.linspace(1, 0, fade)
-gate[g1:g1 + fade] = np.linspace(0, 1, fade)
+if GATE:
+    g0, g1, fade = int(sec(GATE[0]) * SR), int(sec(GATE[1]) * SR), int(0.03 * SR)
+    gate[g0:g1] = 0
+    gate[g0 - fade:g0] = np.linspace(1, 0, fade)
+    gate[g1:g1 + fade] = np.linspace(0, 1, fade)
 drums *= gate[:, None]
 synth *= gate[:, None]
 synth = np.stack([hp(reverb(synth[:, c], 0.25), 35) * duck for c in range(2)], axis=1)
 drums = np.stack([hp(drums[:, c], 25) for c in range(2)], axis=1)
-sfx = np.stack([lp(reverb(sfx[:, c], 0.12), 12000) for c in range(2)], axis=1)
+sfx = np.stack([lp(reverb(M.apply_timbre(sfx[:, c], TIMBRE, SR), 0.12), 12000) for c in range(2)], axis=1)
 mix = drums * 0.8 + synth * 0.7 + sfx * 0.9
 # The loop: fold the tail onto the start. No fade in, no fade out.
 loop = mix[:LOOP_N].copy()
@@ -451,6 +523,9 @@ loop[: len(tail)] += tail
 loop = np.tanh(loop / np.max(np.abs(loop)) * 1.5) / np.tanh(1.5) * 0.9
 raw = os.path.join(ROOT, "public", "score-raw.wav")
 wavfile.write(raw, SR, (loop * 32767).astype(np.int16))
+if os.environ.get("SCORE_RAW"):
+    os.replace(raw, os.path.join(ROOT, "public", "score.wav"))
+    sys.exit(0)
 # Two-pass loudnorm in linear mode: one static gain, so nothing ramps across the loop point.
 probe = subprocess.run(["ffmpeg", "-hide_banner", "-i", raw, "-af", "loudnorm=I=-14:TP=-1.2:LRA=11:print_format=json", "-f", "null", "-"],
                        capture_output=True, text=True).stderr

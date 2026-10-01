@@ -6,14 +6,19 @@ compositions/<id>.cues.json as [{"t": <scene-local s>, "sfx": "<name>"}, ...].
 
     uv run --with numpy --with scipy python audio/score.py
     (or: python3 -m venv .venv && .venv/bin/pip install numpy scipy && .venv/bin/python audio/score.py)
+    python3 audio/score.py --self-test
+
+The music comes from the "music" block in timeline.json, copied from DIRECTION.json: bpm,
+root, mode, progression, preset, swing and timbre (see music.py next to this file). There is
+no default music: a film without its own block stops here.
 
 Adds the voiceover from audio/vo.json when it exists (see tools/vo.py), ducking the bed under it.
 
 Writes assets/audio/score.wav (loudness-normalized with ffmpeg when it is on PATH) and
 assets/audio/score-sfx.wav (effects only, for sync checks).
 
-timeline.json may carry an optional "score" block; every key has a default:
-    {"bpm": 100, "reveal": "<scene id>", "groove": "<scene id>",
+timeline.json may also carry a "score" block; every key has a default:
+    {"reveal": "<scene id>", "groove": "<scene id>",
      "lockup": ["<scene id>", <seconds into it>], "lufs": -15, "seed": 20260525}
 Without it, the reveal is the 2nd scene, the groove starts at the 3rd, and the lockup
 chord lands 3 s before the end.
@@ -25,20 +30,65 @@ import shutil
 import subprocess
 import sys
 
-import numpy as np
-from scipy.io import wavfile
-from scipy.signal import butter, sosfilt
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
+import music as M  # noqa: E402  (music.py sits next to this file)
+
+
+def self_test():
+    """Two films with different music blocks must differ; the same block twice must match."""
+    import tempfile
+    base = {"scenes": [{"id": "a", "start": 0, "dur": 4}, {"id": "b", "start": 4, "dur": 3},
+                       {"id": "c", "start": 7, "dur": 9}],
+            "score": {"lockup": ["c", 6]}}
+    blocks = [{"bpm": 92, "root": "F#", "mode": "dorian", "progression": ["i", "IV", "i", "VII"],
+               "preset": "broken-beat", "swing": 0.12, "timbre": "glass"},
+              {"bpm": 124, "root": "Bb", "mode": "lydian", "progression": ["I", "II", "vii", "V"],
+               "preset": "pulse-house", "swing": 0.0, "timbre": "wood"}]
+    outs = []
+    with tempfile.TemporaryDirectory() as d:
+        for n, block in enumerate(blocks + blocks[:1]):
+            root = os.path.join(d, str(n))
+            os.makedirs(os.path.join(root, "compositions"))
+            json.dump({**base, "music": block}, open(os.path.join(root, "timeline.json"), "w"))
+            json.dump([{"t": 1.0, "sfx": "click"}, {"t": 2.0, "sfx": "success"}],
+                      open(os.path.join(root, "compositions", "b.cues.json"), "w"))
+            env = {**os.environ, "SCORE_ROOT": root, "SCORE_RAW": "1"}
+            subprocess.run([sys.executable, os.path.abspath(__file__)], env=env, check=True, capture_output=True)
+            outs.append(open(os.path.join(root, "assets", "audio", "score.wav"), "rb").read())
+        bad = os.path.join(d, "bad")
+        os.makedirs(bad)
+        json.dump(base, open(os.path.join(bad, "timeline.json"), "w"))
+        r = subprocess.run([sys.executable, os.path.abspath(__file__)], env={**os.environ, "SCORE_ROOT": bad},
+                           capture_output=True, text=True)
+        assert r.returncode != 0 and "music" in r.stderr, "a timeline without a music block must stop"
+    assert outs[0] != outs[1], "two different music blocks produced the same score"
+    assert outs[0] == outs[2], "the same music block produced two different scores"
+    assert abs(len(outs[0]) - len(outs[1])) < 64, "both scores must last the length of the timeline"
+    print("self-test OK")
+
+
+if __name__ == "__main__" and sys.argv[1:] == ["--self-test"]:
+    self_test()
+    sys.exit(0)
+
+import numpy as np  # noqa: E402
+from scipy.io import wavfile  # noqa: E402
+from scipy.signal import butter, sosfilt  # noqa: E402
 
 SR = 48000
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.environ.get("SCORE_ROOT") or os.path.dirname(HERE)
 TL = json.load(open(os.path.join(ROOT, "timeline.json")))
 SCENES = {c["id"]: c for c in TL["scenes"]}
 ORDER = sorted(TL["scenes"], key=lambda c: c["start"])
 CFG = TL.get("score", {})
+MCFG = TL.get("music")
+KEY, PRESET, BPM, SWING, TIMBRE = M.load(MCFG)
 LEN = max(c["start"] + c["dur"] for c in ORDER)
 N = int(SR * LEN)
-BEAT = 60.0 / CFG.get("bpm", 100)
+BEAT = 60.0 / BPM
 BAR = 4 * BEAT
+STEP = BEAT / 4
 rng = np.random.default_rng(CFG.get("seed", 20260525))
 
 music = np.zeros((N, 2))
@@ -167,6 +217,34 @@ def chord_hit(notes, dur=4.0, level=1.0):
     return lp(x, 2200) * np.exp(-t * 0.9) * level
 
 
+def snare(level=1.0):
+    t = t_axis(0.2)
+    return (bp(rng.standard_normal(len(t)), 1200, 7000) * np.exp(-t * 22) * 0.7
+            + np.sin(2 * np.pi * 185 * t) * np.exp(-t * 28) * 0.5) * level
+
+
+def rim(level=1.0):
+    t = t_axis(0.06)
+    return (np.sin(2 * np.pi * 1700 * t) * np.exp(-t * 120) + bp(rng.standard_normal(len(t)), 2000, 8000)
+            * np.exp(-t * 300) * 0.4) * level
+
+
+def lead(kind, n, dur, level=1.0):
+    """The preset's lead voice, playing MIDI note n."""
+    if kind == "pluck":
+        return pluck(n, dur, level)
+    if kind == "bell":
+        return bell(midi(n), dur * 2.2, level * 0.5, 2.2)
+    if kind == "keys":
+        t = t_axis(dur * 1.6)
+        return (bell(midi(n), dur * 1.6, 0.5, 0.9) + np.sin(2 * np.pi * midi(n) * t) * np.exp(-t * 4) * 0.3) * level
+    if kind == "saw":
+        t = t_axis(dur)
+        x = saw(midi(n), t) + saw(midi(n) * 1.006, t)
+        return lp(x * 0.4, 2600) * env(len(t), 0.01, dur, 0.6, 0.05) * level
+    raise ValueError(kind)
+
+
 # ---------------------------------------------------------------- sound effects
 
 
@@ -226,7 +304,7 @@ def thunk(level=1.0):
 def shimmer(dur=1.4, level=1.0):
     out = np.zeros(int(dur * SR) + SR)
     for k in range(14):
-        b = bell(midi(84 + [0, 4, 7, 11, 12, 16, 19][k % 7]), 1.0, 0.25, 1.2)
+        b = bell(midi(KEY.note(7 + [0, 2, 4, 6, 7, 9, 11][k % 7], 4)), 1.0, 0.25, 1.2)
         i = int(k / 14 * dur * SR)
         out[i : i + len(b)] += b
     return out * level
@@ -238,16 +316,16 @@ CUE_FX = {
     "swish": (lambda: whoosh(0.3, 600, 4000, True, 0.7), 0.3),
     "drag": (lambda: whoosh(0.25, 400, 2400, True, 0.5), 0.3),
     "riser": (lambda: riser(1.2, 0.6), 0.4),
-    "pop": (lambda: blip(700, 1100, 0.07, 0.8), 0.4),
+    "pop": (lambda: blip(midi(KEY.note(0, 5)), midi(KEY.note(2, 5)), 0.07, 0.8), 0.4),
     "click": (lambda: tick(1700, 0.8), 0.5),
     "key": (key, 0.4),
     "tick": (lambda: tick(2200, 0.5), 0.4),
-    "drop": (lambda: blip(260, 140, 0.2, 0.8), 0.5),
+    "drop": (lambda: blip(midi(KEY.note(0, 4)), midi(KEY.note(0, 3)), 0.2, 0.8), 0.5),
     "thunk": (lambda: thunk(0.9), 0.6),
-    "chime": (lambda: bell(1760, 1.2, 0.45, 1.2) + bell(2637, 1.2, 0.2, 0.8), 0.4),
-    "success": (lambda: np.concatenate([blip(1047, 1047, 0.07, 0.7), blip(1568, 1568, 0.16, 0.7)]), 0.4),
-    "warn": (lambda: np.concatenate([blip(587, 587, 0.09, 0.8), blip(494, 494, 0.16, 0.8)]), 0.35),
-    "error": (lambda: np.concatenate([blip(520, 520, 0.07, 0.8), blip(390, 380, 0.12, 0.8)]), 0.35),
+    "chime": (lambda: bell(midi(KEY.note(7, 5)), 1.2, 0.45, 1.2) + bell(midi(KEY.note(11, 5)), 1.2, 0.2, 0.8), 0.4),
+    "success": (lambda: np.concatenate([blip(midi(KEY.note(4, 5)), None, 0.07, 0.7), blip(midi(KEY.note(7, 5)), None, 0.16, 0.7)]), 0.4),
+    "warn": (lambda: np.concatenate([blip(midi(KEY.note(3, 5)), None, 0.09, 0.8), blip(midi(KEY.note(2, 5)), None, 0.16, 0.8)]), 0.35),
+    "error": (lambda: np.concatenate([blip(midi(KEY.note(1, 5)), None, 0.07, 0.8), blip(midi(KEY.note(0, 5)), None, 0.12, 0.8)]), 0.35),
     "stamp": (lambda: thunk(1.6) + np.pad(tick(900, 0.6), (0, int(0.32 * SR)))[: int(0.35 * SR)], 0.7),
     "slam": (lambda: slam(0.8), 0.6),
     "impact": (impact, 0.8),
@@ -264,62 +342,90 @@ def peak_offset(x):
 
 
 # ---------------------------------------------------------------- music
-# Four acts keyed to the timeline: tension until the reveal, the reveal, a groove under
-# the product at work, a chord under the logo lockup, then a quiet bed under the credits.
+# Four acts keyed to the timeline: tension until the reveal, the reveal, a groove under the
+# product at work, a chord under the logo lockup, then a quiet bed under the credits. The key,
+# mode, progression, groove and lead all come from the film's music block.
 
-chords = {"Am": [57, 60, 64], "F": [53, 57, 60], "E": [52, 56, 59], "C": [48, 55, 60, 64],
-          "G": [55, 59, 62], "Cadd9": [48, 55, 62, 64, 67]}
-roots = {"Am": 33, "F": 29, "E": 28, "C": 36, "G": 31, "Cadd9": 36}
+PROG = MCFG["progression"]
+SNARE = {"clap": clap, "snare": snare, "rim": rim}[PRESET["snare_kind"]]
+TONIC = KEY.chord("i", 4)
 
-for b, name in enumerate(["Am", "Am", "F", "F", "E", "E"] * 4):
+
+def at_step(bar_at, s):
+    """Time of step s (0..15) in a bar, with swing on the off-16ths."""
+    return bar_at + s * STEP + (SWING * STEP if s % 2 else 0.0)
+
+
+def drums(at, density):
+    """density 0.3: kick and hats only; 0.6 adds the snare; 0.9 adds the open hats."""
+    for s in PRESET["kick"]:
+        place(music, lp(kick(0.9), 900), at_step(at, s), 0.62)
+    if density >= 0.6:
+        for s in PRESET["snare"]:
+            place(music, SNARE(), at_step(at, s), 0.5)
+    if density >= 0.3:
+        for s in PRESET["hats"]:
+            place(music, lp(hat(), 11000), at_step(at, s), 0.22 if s % 4 else 0.3, pan=0.25)
+    if density >= 0.9:
+        for s in PRESET["open"]:
+            place(music, hat(True), at_step(at, s), 0.16, pan=-0.2)
+
+
+def harmony(at, numeral, bright, arp_level, bass_level=0.45):
+    place(music, pad_chord(KEY.chord(numeral, 4), BAR + 0.5, bright), at, 0.32)
+    root = KEY.bass_root(numeral, 2)
+    for s, steps, octave in PRESET["bass"]:
+        place(music, bass_note(root + 12 * octave, steps * STEP * 0.95), at_step(at, s), bass_level)
+    if arp_level:
+        deg = M.parse_numeral(numeral)[0]
+        rate = PRESET["arp_rate"]
+        for k, s in enumerate(range(0, 16, rate)):
+            n = KEY.note(deg + PRESET["arp"][k % len(PRESET["arp"])], 5)
+            place(music, lead(PRESET["lead"], n, rate * STEP * 1.2, arp_level), at_step(at, s), 1.0,
+                  pan=float(np.sin(k * 1.3) * 0.4))
+
+
+# Tension: the progression under a dark pad; the drums come in one layer at a time.
+b = 0
+while b * BAR < REVEAL:
     at = b * BAR
-    if at >= REVEAL:
-        break
-    place(music, pad_chord(chords[name], BAR + 0.6, 700), at, 0.5)
-    for k in range(8):
-        place(music, bass_note(roots[name], BEAT * 0.47), at + k * BEAT / 2, 0.55 if k % 2 == 0 else 0.35)
-    if b >= 2:
-        place(music, kick(0.8), at, 1.0)
-        place(music, kick(0.6), at + 2 * BEAT, 1.0)
-    if b >= 3:
-        for k in range(16):
-            place(music, hat(), at + k * BEAT / 4, 0.25 if k % 2 else 0.4, pan=0.3)
+    place(music, pad_chord(KEY.chord(PROG[b % len(PROG)], 4), BAR + 0.6, PRESET["pad"] * 0.6), at, 0.5)
+    for s, steps, octave in PRESET["bass"]:
+        place(music, bass_note(KEY.bass_root(PROG[b % len(PROG)], 2) + 12 * octave, steps * STEP * 0.9), at_step(at, s), 0.4)
+    if b >= 1:
+        drums(at, 0.3 if b < 3 else 0.6)
+    b += 1
 if REVEAL > 2.4:
     place(music, riser(2.4, 0.9), REVEAL - 2.4, 0.8)
 
-place(music, chord_hit(chords["C"], 6.0), REVEAL, 0.9)
-place(music, pad_chord(chords["C"] + [67], max(GROOVE - REVEAL, 0.5), 1400), REVEAL, 0.55)
-for k, n in enumerate([72, 76, 79, 84, 79, 76, 72, 79]):
+# Reveal: a hit on the tonic, and the lead states the tonic chord once.
+place(music, chord_hit(TONIC + [KEY.note(0, 3)], 6.0), REVEAL, 0.9)
+place(music, pad_chord(TONIC + [KEY.note(7, 4)], max(GROOVE - REVEAL, 0.5), PRESET["pad"] * 1.2), REVEAL, 0.55)
+for k, d in enumerate([0, 2, 4, 7, 4, 2, 0, 4]):
     if REVEAL + 1.0 + k * BEAT / 2 < GROOVE:
-        place(music, bell(midi(n), 1.4, 0.35), REVEAL + 1.0 + k * BEAT / 2, 1.0, pan=(-0.4 if k % 2 else 0.4))
-place(music, bass_note(36, max(GROOVE - REVEAL, 0.5)), REVEAL, 0.5)
+        place(music, lead(PRESET["lead"], KEY.note(d, 5), BEAT * 0.6, 0.35), REVEAL + 1.0 + k * BEAT / 2, 1.0,
+              pan=(-0.4 if k % 2 else 0.4))
+place(music, bass_note(KEY.note(0, 2), max(GROOVE - REVEAL, 0.5)), REVEAL, 0.5)
 if GROOVE - REVEAL > 1.5:
     place(music, riser(1.2, 0.5), GROOVE - 1.2, 0.4)
 
-prog = ["C", "Am", "F", "G"]
-arp = [0, 7, 12, 16, 12, 7, 0, 7]
+# Groove: the progression loops, one chord a bar. Every eighth bar breathes (no snare, no lead).
 i = 0
 while GROOVE + i * BAR < LOCKUP - 0.6:
     at = GROOVE + i * BAR
-    name = prog[i % 4] if (i // 8) % 3 != 2 else ["Am", "F", "C", "G"][i % 4]
-    place(music, pad_chord(chords[name], BAR + 0.5, 1100), at, 0.32)
-    root = roots[name] + 12
-    for k in range(4):
-        place(music, lp(kick(0.9), 900), at + k * BEAT, 0.62)
-        place(music, lp(hat(), 11000), at + k * BEAT + BEAT / 2, 0.22, pan=0.25)
-        place(music, bass_note(root - 12, BEAT * 0.8), at + k * BEAT + BEAT / 2, 0.45)
-    place(music, clap(), at + BEAT, 0.5)
-    place(music, clap(), at + 3 * BEAT, 0.5)
-    for k, off in enumerate(arp * 2):
-        place(music, pluck(root + 12 + off, 0.3, 0.3 if i < 10 else 0.38), at + k * BEAT / 4, 1.0, pan=np.sin(k) * 0.4)
+    breath = i % 8 == 7
+    drums(at, 0.3 if breath else 1.0)
+    harmony(at, PROG[i % len(PROG)], PRESET["pad"], 0.0 if breath else (0.3 if i < 8 else 0.38))
     i += 1
 
+# Lockup: the tonic with an added ninth, and a rising run in the key.
+NINTH = KEY.chord("i9", 3)
 place(music, riser(1.6, 0.6), LOCKUP - 1.6, 0.55)
-place(music, chord_hit(chords["Cadd9"], 3.6), LOCKUP, 0.8)
-place(music, pad_chord(chords["Cadd9"], max(LEN - LOCKUP, 3.6), 1600), LOCKUP, 0.4)
-place(music, bass_note(36, 3.4), LOCKUP, 0.4)
-for k, n in enumerate([84, 88, 91, 96]):
-    place(music, bell(midi(n), 2.4, 0.3), LOCKUP + k * 0.15, 1.0, pan=(-0.5 + k * 0.33))
+place(music, chord_hit(NINTH, 3.6), LOCKUP, 0.8)
+place(music, pad_chord(NINTH, max(LEN - LOCKUP, 3.6), PRESET["pad"] * 1.4), LOCKUP, 0.4)
+place(music, bass_note(KEY.note(0, 2), 3.4), LOCKUP, 0.4)
+for k, d in enumerate([7, 9, 11, 14]):
+    place(music, bell(midi(KEY.note(d, 5)), 2.4, 0.3), LOCKUP + k * 0.15, 1.0, pan=(-0.5 + k * 0.33))
 
 # ---------------------------------------------------------------- cues
 # Cue t is scene-local in the scene's own (unscaled) time; a speed-wrapped scene
@@ -397,7 +503,7 @@ def reverb(x, mix=0.25):
 
 
 music = np.stack([hp(reverb(music[:, ch], 0.22 + 0.02 * ch), 30) for ch in range(2)], axis=1)
-sfx = np.stack([lp(reverb(sfx[:, ch], 0.12), 11000) for ch in range(2)], axis=1)
+sfx = np.stack([lp(reverb(M.apply_timbre(sfx[:, ch], TIMBRE, SR), 0.12), 11000) for ch in range(2)], axis=1)
 bed = music * 0.42 + sfx
 # The voice sits clearly above the bed: its speaking RMS is 2.2x the bed's average.
 spoken = np.abs(vo) > 0.05
@@ -415,11 +521,11 @@ raw, final = os.path.join(out_dir, "score-raw.wav"), os.path.join(out_dir, "scor
 wavfile.write(raw, SR, (mix * 32767).astype(np.int16))
 wavfile.write(os.path.join(out_dir, "score-sfx.wav"), SR, (sfx / max(np.max(np.abs(sfx)), 1e-9) * 0.89 * 32767).astype(np.int16))
 lufs = CFG.get("lufs", -15)
-if shutil.which("ffmpeg"):
+if shutil.which("ffmpeg") and not os.environ.get("SCORE_RAW"):
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", f"loudnorm=I={lufs}:TP=-1.5:LRA=11",
                     "-ar", str(SR), final], check=True)
     os.remove(raw)
 else:
     os.replace(raw, final)
     print("ffmpeg not found: score.wav is not loudness-normalized")
-print(f"score {LEN:.2f}s  reveal {REVEAL:.2f}  groove {GROOVE:.2f}  lockup {LOCKUP:.2f}  -> {final}")
+print(f"score {LEN:.2f}s  {MCFG['bpm']} BPM {MCFG['root']} {MCFG['mode']} {MCFG['preset']} {MCFG['timbre']}  reveal {REVEAL:.2f}  groove {GROOVE:.2f}  lockup {LOCKUP:.2f}  -> {final}")
