@@ -1,7 +1,7 @@
 import { Easing, interpolate } from "remotion";
 import T from "./timeline.json";
 
-export type Section = { id: string; start: number; len: number };
+export type Section = { id: string; start: number; len: number; energy?: string };
 
 export const FPS = T.fps;
 export const BPM = T.bpm;

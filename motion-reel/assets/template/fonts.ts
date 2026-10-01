@@ -1,11 +1,9 @@
 import { continueRender, delayRender, staticFile } from "remotion";
 
-// Vendored variable fonts; every frame waits for them so no frame renders in a fallback face.
-const FACES: [string, string, string, string][] = [
-  ["Plus Jakarta Sans", "PlusJakartaSans-400.woff2", "200 800", "normal"],
-  ["Plus Jakarta Sans", "PlusJakartaSans-300i.woff2", "200 800", "italic"],
-  ["JetBrains Mono", "JetBrainsMono-400.woff2", "100 800", "normal"],
-];
+// Vendored fonts; every frame waits for them so no frame renders in a fallback face.
+// Fill FACES with the product's UI font and the film's display face from DIRECTION.json:
+// [family, file in public/fonts/, weight range, style].
+const FACES: [string, string, string, string][] = [];
 
 export const loadFonts = (): void => {
   if (typeof document === "undefined") return;

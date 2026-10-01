@@ -1,5 +1,11 @@
 # Motion recipes
 
+These are infrastructure: they keep frames seek-safe and make UI feel human.
+Copy them. They are not the film's style. The film's hero motion, its world's
+entrances and exits, and its transitions are invented per film from
+`DIRECTION.json`; build those with `/hyperframes-animation` and
+`/hyperframes-keyframes`.
+
 Every snippet assumes one paused GSAP timeline `tl` per scene, registered on
 `window.__timelines["<id>"]`. The renderer seeks to arbitrary times. So every
 value on screen must be a pure function of the timeline position.

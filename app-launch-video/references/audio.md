@@ -1,8 +1,9 @@
 # Audio: score, cues, loudness, sync
 
-The score is synthesized offline by `audio/score.py` (copied from this skill's
-`scripts/`). It writes the music and every sound effect into one WAV. No samples,
-no network. The same seed always gives the same file.
+The score is synthesized offline by `audio/score.py` and `audio/music.py` (copied
+from this skill's `scripts/`). It writes the music and every sound effect into one
+WAV. No samples, no network. The same music block always gives the same file, and
+two films with different blocks never sound alike.
 
 ```
 timeline.json ──┬──> tools/build_index.py ──> index.html hosts
@@ -22,13 +23,19 @@ uv run --with numpy --with scipy python audio/score.py
 A bare `python3` often lacks scipy (`ModuleNotFoundError: scipy`). Use one of the
 two lines above, and keep the venv outside the rendered folders.
 
-Optional tuning in `timeline.json`:
+The music comes from the `music` block in `timeline.json`, copied unchanged
+from `DIRECTION.json`: `bpm`, `root`, `mode`, `progression`, `preset`, `swing`,
+`timbre`. Without it, the score stops. The key also tunes the tonal effects
+(success, chime, warn, error, pop), and the timbre colours every effect, so
+the effects belong to the film's world.
+
+Optional timing in `timeline.json`:
 
 ```json
-"score": { "bpm": 100, "reveal": "s3", "groove": "build", "lockup": ["finale", 10.84], "lufs": -15 }
+"score": { "reveal": "s3", "groove": "build", "lockup": ["finale", 10.84], "lufs": -15 }
 ```
 
-- `reveal` is the scene where the logo lands (the C-major hit).
+- `reveal` is the scene where the logo lands (a hit on the tonic chord).
 - `groove` is where the product-at-work beat starts.
 - `lockup` is the scene and the offset where the final chord lands under the
   logo lockup.
@@ -130,11 +137,13 @@ audio/vo.json ──> tools/vo.py (Kokoro, local) ──> assets/audio/vo/<id>.w
 ## Loudness
 
 `score.py` normalizes the WAV to -15 LUFS integrated with ffmpeg `loudnorm`.
-The render can shift the level. Long, quiet credits pull the integrated value
+`--gpu` encodes on the GPU, and Chrome captures on the GPU by default
+(`--browser-gpu` is automatic). If `--gpu` fails on a machine without a usable
+encoder, render again without it. The render can shift the level. Long, quiet credits pull the integrated value
 down. So normalize the final mp4 again without re-encoding the video:
 
 ```bash
-npx --yes hyperframes@0.8.77 render --quality delivery --fps 30 --output renders/raw.mp4
+npx --yes hyperframes@0.8.77 render --quality delivery --fps 30 --gpu --output renders/raw.mp4
 ffmpeg -y -loglevel error -i renders/raw.mp4 -c:v copy -af loudnorm=I=-15:TP=-1.5:LRA=11 \
   -ar 48000 -c:a aac -b:a 256k renders/film.mp4
 ffmpeg -hide_banner -i renders/film.mp4 -af ebur128 -f null - 2>&1 | grep -E "^\s+I:" | tail -1
@@ -168,7 +177,7 @@ This pulls the frame at every cue (and 0.1 s after) into
 | whoosh / swish | the panel mid-move (fastest point) |
 
 An automatic "audio onset versus motion peak" check on the mixed track is not
-reliable. The music beat (0.6 s at 100 BPM) produces stronger onsets than the
+reliable. The music beat produces stronger onsets than the
 effects, and a flight's motion peaks mid-flight. If you want a number, measure
 onsets on `score-sfx.wav`, not on the mix. Still treat the contact sheet as the
 proof.

@@ -1,169 +1,113 @@
 # Scene recipes
 
-## Frame layout
+Every scene follows the film's `DIRECTION.json`: its layout, its world and its
+hero motion. Nothing in this file sets the look.
 
-```
-x: 0      140            740  800                                  1860  1920
-   +------+---------------+----+-------------------------------------+----+
-   |      | CAPTION       |    | APP WINDOW (.app, white, r=20)      |    |  y 90
-   |      | label         |    |                                     |    |
-   |      | Title         |    |  real UI of the product             |    |
-   |      | description   |    |                                     |    |
-   |      | (from y 250)  |    |                                     |    |  y 990
-   +------+---------------+----+-------------------------------------+----+
-```
+## Layouts
 
-- The caption column is x 140 to 740, from y 250. Put nothing else on the left.
-- All UI lives in the right region, x 800 to 1860, y 90 to 990 (max 1060 × 900).
-  Scale a window down to fit. Do not crop it.
-- Inside windows, body text is at least 16 px, table text at least 17 px, and
-  headings are 24 to 34 px.
-- Full-width scenes (the build editor, the finale) drop the caption and use the
-  whole frame.
+The frame is 1920 x 1080. Keep a 90 px safe margin on every side. Inside
+recreated UI, body text is at least 16 px, table text at least 17 px, and
+headings 24 to 34 px.
 
-## Caption standard
+| `layout` | Frame |
+|---|---|
+| `split-caption` | Caption column x 140-740 from y 250; the UI in x 800-1860, y 90-990 |
+| `lower-third` | The UI or media fills x 90-1830, y 90-800; the caption sits under it, y 840-990 |
+| `full-bleed-type` | The title is the picture (160-260 px); the UI appears as a small element inside the type or behind it |
+| `corner-index` | A step index (`03 / 07`) and a short title in one corner; the UI fills the rest |
+| `center-stack` | One object centred, up to 1100 px wide; the caption centred under it |
+| `no-caption` | No text layer; the voiceover or the motion carries the meaning |
 
-Every explainer scene uses exactly one caption block. The styles are in
-`assets/theme.css` (`.cap`, `.cap-label`, `.cap-title`, `.cap-desc`). The motion
-is in `assets/caption.js` (`capIn`, `capOut`).
+Full-frame moments (the opening, the hero motion's big beats, the finale) may
+drop the caption in any layout.
 
-```html
-<div class="cap" id="<id>-cap">
-  <div class="cap-label">Step 03 · Matching</div>
-  <div class="cap-title">Match automatically</div>
-  <div class="cap-desc">Match records by key, or without one through layered rules with tolerance.</div>
-</div>
-```
-```js
-window.capIn(tl, "<id>-cap", 0.05);
-window.capOut(tl, "<id>-cap", DUR - 0.35);
-```
+## Caption copy
+
+The copy rules hold in every layout. The styles are in `assets/theme.css`
+(`.cap`, `.cap-label`, `.cap-title`, `.cap-desc`); restyle them for the layout.
+The motion is in `assets/caption.js` (`capIn`, `capOut`).
 
 | Part | Rule | Bad | Good |
 |---|---|---|---|
-| label | `GROUP · NAME`. Groups: `Step 01`–`Step NN` for the core loop, then `Run`, `Review`, `Report`, or the product's own phase words. | `STEP 01 · INGESTION` then a title "Ingestion." | `Step 01 · Ingestion` |
+| label | `GROUP · NAME`. Use the product's own phase words for the group. | `STEP 01 · INGESTION` then a title "Ingestion." | `Step 01 · Ingestion` |
 | title | A 2 to 4 word action phrase. No period. Never repeats the label. | "Ingestion." | "Pull data from anywhere" |
-| desc | One factual sentence of 25 words or fewer. Real capabilities only, taken from the code or the docs. | "Streamline your workflow." | "Fetch files from SFTP, email, APIs and storage." |
+| desc | One factual sentence of 25 words or fewer, from the code or the docs. | "Streamline your workflow." | "Fetch files from SFTP, email, APIs and storage." |
 
-Write all captions into one copy table in `STORYBOARD.md` first. Review the
-table as a set. Consistency is what the client checks.
+Write all captions into one copy table in `STORYBOARD.md` first and review it
+as a set.
 
-## The explainer recipe: configure, then process
+## Scene types by mechanic
 
-Each core-loop step gets one scene, 3.5 to 7 s long:
+Use the types the product has. Each shows its step in the real UI, then
+visualizes what happens to the input, in the film's world.
+
+| Type | Configure in the real UI | Then show |
+|---|---|---|
+| transform | the form or file picker that sets the input | raw input passes through the hero motion and lands in its new shape |
+| match | the rule or key setting | items from two sides pair up; the ones that do not pair are set aside |
+| route | the destination or rule list | one item travels a path that branches to several outcomes |
+| inspect | the filter or query | a lens or highlight moves over the data and stops on the finding |
+| schedule | the schedule setting | time passes in the film's world; runs fire on their own |
+| generate | the prompt or template | the output builds piece by piece from the input |
+| collaborate | a share or invite dialog | a second named cursor joins and works at the same time |
+
+Pacing for one step scene, 3.5 to 7 s:
 
 ```
-0.0  caption in, app window in
-0.4  the REAL config UI for this step: dialog, form or panel with real labels.
-     The cursor sets one or two values that matter.
-~40% cut or morph to the process visualization:
-     the input (files, records, requests) moves through the step
-     and lands transformed in the output. Use real-looking data.
-~85% a completion toast or result badge, held for reading time
-DUR-0.35  caption out, window out
+0.0       scene in (the hero motion hands over from the last scene)
+0.4       the real config UI; the cursor sets one or two values that matter
+~40%      the process in the film's world, with real-looking data
+~85%      the result, held for reading time
+DUR-0.35  out, into the next hand-off
 ```
 
-- Show the process with real objects. Fields fly from a raw file into typed
-  columns. Pairs of rows lock together. Flags stamp onto rows. Do not use
-  abstract blobs.
-- A flying chip must carry visible text: a white pill, a colored border and dark
-  mono text. An empty box reads as a bug.
-- If the build scene already showed this step's config, do not show it again.
-  Go straight to the process or to the outcomes.
-- For an output step, show the fan-out: one result that goes to email, a webhook
-  and storage.
+- Move real objects: fields, rows, files, messages with visible text. An empty
+  flying box reads as a bug.
+- If an earlier scene already showed this step's config, go straight to the
+  process.
+- A state change ("approve", "publish") morphs into the result inside the same
+  scene. Start the morph as soon as the change settles; hold the result about
+  0.8 s after its last reveal.
+- Show progress as real log lines or a timeline that fills. Never show a
+  static spinner.
 
-## The build scene (the product's main screen)
+## The main screen
 
-This is one long scene on track 1. The explainers cut in over it on track 2.
-
-- Build the screen from the app's real components: palette, canvas, inspector,
-  logs panel. Use the real icon set.
-- Build in segments, one per core-loop step. After each segment, leave a 3 to
-  6 s gap. The explainer scene covers the gap. Then resume.
-- Open the real config dialog for one representative item per segment. Put each
-  panel to its real use (a logs panel shows logs).
-- Move the camera Screen Studio-style: one eased zoom toward the work, then back
-  out. See `motion.md`.
-- If the product is collaborative, show a second named cursor with a presence
-  avatar. Split the build between the two cursors.
-- If an item produces a file, open its real editor and show one binding land.
-- End with a test or preview run whose logs stream in the real panel.
+When the product centres on one screen (an editor, a board, a canvas), it
+earns one long scene on track 1, with step scenes cutting in over it on
+track 2. Build it from the app's real components and icons. Move the camera
+with one eased zoom at a time (`motion.md`).
 
 ## Pages never load
 
-A recreated page must arrive with its body. Read the real page component and
-rebuild what sits under the header (stats, cards, lists). Bring the content in
-with the window, within 0.1 s. When the scene switches pages, fade the old one
-out (0.15 s), then fade the new one in (0.25 s) with its content. A white window
-with only a header reads as a loading state.
+A recreated page arrives with its body. Rebuild what sits under the header
+(stats, cards, lists) from the real component, and bring it in with the window
+within 0.1 s. A window with only a header reads as a loading state.
 
-## Operate scenes
+## Opening and mark
 
-- Automation first. Show a schedule set in the real settings UI (for example a
-  cron expression, three runs a day), then the monitor that lists the runs.
-- Then on demand. Show a run dialog, then the run detail with per-step log
-  lines that stream in, and a Gantt whose bars grow in step order. Never show a
-  static spinner.
+- Open inside the film's world, on the problem the product removes, at full
+  pace from the first frame.
+- Design the mark's entrance for its shape and the world. A flat mark can spin
+  and snap; a mascot moves like itself. Carry a shape from the previous scene
+  into the mark's entrance, so the cut connects.
+- The finale comes from `arcs.md`. Hold the closing words about 1.5 s, then
+  leave about 1 s before the mark lands.
 
-## Review and result
+## Credits and phone viewers (ask in intake)
 
-- Show real interactions: a bulk action on selected rows, a tab switch between
-  sheets, an inline edit.
-- A state change ("mark final", "approve", "publish") morphs into the result view
-  inside the same scene. The changed item highlights. Do not cut to a new scene.
-  Start the morph as soon as the state change settles (a 0.6 s morph). Hold the
-  result about 0.8 s after its last reveal, then exit.
-- Show realistic volume: a full month, not one day. Stream the rows in with a
-  stagger and a scroll.
-
-## Finale sequence (about 25 s)
-
-```
-node rain ──> card wall ──> "and many more..." ──> logo + pillar pills ──> credits over marquee
- ~7 s          ~2.5 s        no gap before it       ~3 s hold               10 s
-```
-
-1. **Node rain.** For each feature category: the category title appears in the
-   center. Its items pop in place on one or two tight ellipses around the title.
-   Each item wiggles in place (non-blocking, so the next pops meanwhile). Then
-   they all fall off-screen. Each category is faster than the one before.
-   Use the real icons.
-2. **Card wall.** The product's primitives as cards (icon, name, the app's own
-   one-line description) pop in a grid and exit together.
-3. **"and many more..."** starts the moment the wall exits. Hold it about 1.5 s,
-   then leave a breath of about 1 s before the lockup (the lockup is the payoff).
-4. **Lockup.** The logo, the real slogan, then the pillar tags as pills.
-5. **Credits.** They rise from the bottom and fade out, over 10 s. Show the
-   company line, the company slogan and the contact. Behind them run
-   full-screen marquee rows of contributor names, in alternating directions,
-   low contrast. When the client gives teams, use one row per team: the team
-   name in small accent capitals, then its members, and a person appears in
-   every team they belong to. Without teams, deal the names with a seeded
-   shuffle so each name is in exactly one row (`motion.md`).
-
-## Logo intro
-
-Design the intro for the mark's shape. A flat geometric mark can spin and
-snap. A mascot moves like itself: it surfaces, lands, bobs. Carry a line or
-shape from the previous scene into the intro, so the cut connects. For
-example, the flood's cyan line became the waterline the mascot rises out of.
-Use a transparent cutout of the mascot, cropped to its bounds. A mascot
-source often has a solid background.
-
-## Phone viewers
-
-- A corner hint for the first ~4 s: a rotate-phone icon that turns to
-  landscape and a speaker icon that pulses, "Rotate your phone · Sound on".
-  Snapshot the opening scene first, and use the corner it leaves empty.
-- Subtitles at the bottom centre, 38 px, in a dark translucent pill, on their
-  own track above every scene.
-- Zoom dialogs and small UI to fill the frame (see SKILL.md, Build).
+- Credits: the company line, slogan and contact the client gives, over the
+  contributor names. Lay the names out in the film's world (rows, a grid, a
+  path); never size names unequally.
+- Phone viewers: when the client watches on a phone, add a short corner hint
+  (rotate the phone, sound on) for about 4 s, zoom dialogs to about 88% of the
+  frame height (`zoom = 950 / dialog height`, at most 2.2), and burn in
+  subtitles.
 
 ## Reusing and retiming scenes
 
 - To speed up a reused scene, wrap it in a speed wrapper. Record `speed`,
   `old_start` and `old_dur` in `timeline.json` so the score can remap its cues.
-- To insert content in the middle of a long scene, shift every later segment
-  with a time proxy (`motion.md`). Then push the later scenes back in
-  `timeline.json`. Do not compress existing tweens.
+- To insert content in a long scene, shift every later segment with a time
+  proxy (`motion.md`), then push the later scenes back in `timeline.json`. Do
+  not compress existing tweens.

@@ -1,71 +1,74 @@
 # Recipes
 
-All code is in `assets/examples/`. Every value is a function of the section-local beat `b`.
+Techniques, not a reel to copy. Every value is a function of the section-local
+beat `b` (helpers in `assets/template/timeline.ts`). The look, the world and
+the hero motion come from the film's `DIRECTION.json`.
 
-## Kinetic type for ideas (`Pillars.tsx`)
+## Sections from the product's own pillars
 
-| Idea | Motion | Product element | Hand-off out |
-|---|---|---|---|
-| Speed | the word arrives from the left, skewed and blurred, on horizontal streaks; it settles on the downbeat | Gantt bars race; a timer counts to "1m 24s" | the last streak widens, skewed, until it covers the frame |
-| Flexibility | letters bounce on a sine wave; weight and scale follow the wave | a cursor drags the middle of an edge between two nodes up and down on the beat | the cursor clicks; the click ring grows into the next colour |
-| Inspection | a thin outline word; a lens sweeps across and shows the bold word inside | a real log line sits inside the lens | the lens stops and grows until its inside is the whole frame |
-| Iteration | 8 echo copies stack upward (outlines), and the last one is solid | version tags v1-v8; a rerun arrow turns | the echoes collapse; the solid word falls out of frame downward |
-| Visual abstraction | letters fly in, turn into boxes, and edges link them | the boxes are nodes | the boxes re-flow into the next layout (a calendar grid) |
+Take the section ideas from the product, never from an earlier reel:
+
+1. The landing page's section titles and headline claims.
+2. The README's feature headings.
+3. The product's core loop, one stage per section.
+
+Pick 3 to 6. Each section shows one real product element on screen (a screen,
+a data shape, a result) and states one idea in one or two words.
+
+## Kinetic type: a technique per idea
+
+Match the motion to the meaning of the word. Invent; these are starting points.
+
+| The idea is about | A motion that says it |
+|---|---|
+| speed, flow | the word arrives on streaks, skewed, and settles on the downbeat |
+| change, flexibility | the letters bend on a wave; weight follows the wave |
+| finding, precision | an outline word; a lens or a scan line shows the solid word inside |
+| repetition, versions | echo copies stack, then collapse into one |
+| structure, building | letters turn into blocks that link or stack |
+| scale, many | the word tiles until it fills the frame, then one tile stays |
+| privacy, safety | the word locks: a shape closes around it |
+| connection | two words reach toward each other and join at one letter |
 
 Rules:
-- One word per four beats. It must be readable in the first beat.
-- The background colour changes with each idea, and the hand-off carries the
-  new colour in.
-- Keep the direction of motion across a cut. When word A falls out downward,
-  word B falls in from above.
+- One idea per bar or per four beats. It must read in the first beat.
+- Words at 120 px or more for a screen seen from a distance.
+- Add one product element to every word, so the idea is about this product.
+- Keep the direction of motion across a cut: when word A leaves downward, word
+  B enters from above.
 
-## Workflow graph (`Build.tsx`)
+## Hand-offs
 
-- World-space node cards: an icon tile in the node group's tint, the name, and
-  a mono sub-label. The camera is `scale(z) translate(-cx, -cy)` around the
-  frame centre.
-- Pop nodes on the beat (`back.out`), and draw edges with `pathLength=1` and a
-  dash offset. Send one packet per beat along each drawn edge.
-- Start zoomed in (1.25) so the first nodes read from a distance, then pan and
-  fit.
-- Dive: from 2 beats before the cut, zoom about 14× into one node with an
-  `inn` ease. At the cut, the card's white fills the frame and becomes the next
-  section's background.
+Every cut hands one object to the next section. `assets/template/Handoff.tsx`
+shows the timing pattern with a plain shape. Build the reel's hand-offs from
+its hero motion, so the transitions are as particular as the product:
 
-## Matching and flags (`Match.tsx`)
+| Pattern | The object |
+|---|---|
+| grow to fill | a shape from the outgoing section grows until it is the next background |
+| dive | the camera zooms into one element; its fill becomes the next frame |
+| collapse | everything shrinks into one dot or line; the next section grows from it |
+| carry | an object moves across the cut and becomes the first element of the next section |
+| wipe by motion | the hero motion (a scan line, a fold, a wave) passes over the frame and leaves the next section behind |
 
-- Pairs lock on the 8ths: the two rows slide to the middle, turn green, and a
-  check pops.
-- Exceptions drop to a tray, and a flag chip slams onto each (`back.out` with
-  a small rotation).
-- A big counter takes over, then the progress bar fills and grows into the
-  next background.
+- Hold one colour until the shape is thin or the frame is full, then switch.
+  A 50/50 mix of two brand colours often turns muddy.
+- List every hand-off inside a section in `timeline.json` `handoffs`, so the
+  check sheet covers it.
 
-## Feature montage into a dot (`Montage.tsx`)
+## Building on the beat
 
-- One full-frame card per feature: an icon from the app's own icon set, the
-  name at 150 px, and a small "07 / 26" counter. The background cycles through
-  the palette, and the text switches dark or light with it.
-- Speed the cuts up on the grid: 4 × 1 beat, 6 × ½, 8 × ¼, 8 × ⅛. Early cards
-  are read; late cards are energy. Each card punches in (1.1 to 1).
-- Hand-off in: dive the camera into one box of the previous section. The
-  box's fill colour is the first card's background.
-- Hand-off out: the last card's rectangle shrinks to a 30 px dot at the logo
-  tile's centre and turns orange. Hold the dot for about 1 beat with one
-  pulse. The music drops out for that breath (a gate on drums and synth; the
-  effects stay).
-- The logo tile then grows from the dot (scale from dot size to 1, `back.out`).
+- Pop elements on the beat (`back.out`), draw lines with `pathLength=1` and a
+  dash offset, and move small details on the 8ths and 16ths.
+- Accelerating montages read as "and it does all this": 1, 1/2, 1/4, 1/8 beat
+  per card. Early cards are read; late cards are energy.
+- Start zoomed in so the first elements read from a distance, then pull back.
+- A breath before the mark: one beat where the music drops out (`gate` in
+  `timeline.json`) and one object holds still.
 
-A calendar "Every day. Final." section was cut here. It showed one feature
-where the client wanted all of them, and it did not lead into the logo.
+## The mark
 
-## Logo build and the loop line (`Logo.tsx`, `Mark.tsx`)
-
-- Drive each part of the mark by its own 0..1 value: tile, ears, muzzle, eyes,
-  nose, teeth. The teeth land on the music's logo hit, with a 7% scale kick.
-- Lockup: the mark slides and shrinks to the left, and the wordmark letters
-  rise. The tagline arrives in two beats.
-- Loop: the mark returns to the centre, the face scales out, and a div with
-  the tile's geometry stretches into the opening line (width, height, radius).
-  It stays orange until thin, then turns to the line colour. A 50/50 mix of
-  orange and teal turned olive.
+- Drive each part of the mark by its own 0..1 value, and land its key part on
+  the music's logo hit (the start of the section with `"energy": "logo"`).
+- For a loop, return the mark to the opening state: the last frame is the
+  first frame (`loop.md`).

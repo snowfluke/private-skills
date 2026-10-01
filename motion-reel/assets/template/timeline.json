@@ -1,0 +1,11 @@
+{
+  "bpm": 0,
+  "fps": 30,
+  "beats": 0,
+  "music": {"bpm": 0, "root": "", "mode": "", "progression": [], "preset": "", "swing": 0, "timbre": "", "why": "copy this block from DIRECTION.json"},
+  "sections": [
+    {"id": "<section>", "start": 0, "len": 8, "energy": "intro"}
+  ],
+  "handoffs": [],
+  "cues": []
+}

@@ -1,6 +1,6 @@
 """Download Google Fonts (latin subset, woff2) into assets/fonts and write assets/fonts.css.
 
-    python3 tools/vendor_fonts.py "Plus Jakarta Sans:400,500,600,700,800;300i" "JetBrains Mono:400,500,600,700"
+    python3 tools/vendor_fonts.py "<UI family>:400,500,600,700" "<mono family>:400,500,600,700"
 
 Each argument is "Family:weights", with "i" after a weight for italic. The render must never depend on
 a font CDN, so the woff2 files live in the project. Load assets/fonts.css before assets/theme.css in

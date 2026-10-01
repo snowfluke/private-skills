@@ -49,9 +49,10 @@ labels that are not in this brief or in the app's source. Illustrative data
   `.cursor`, `.ripple`, and the caption classes.
 - Icons: use `window.{{ICON GLOBAL}}[label]`, the real icon paths extracted
   from `{{ICON PACKAGE}}`.
-- Layout: the caption goes on the left (x 140-740, from y 250). Everything else
-  goes in the right region (x 800-1860, y 90-990). Window body text is at least
-  16 px, table text at least 17 px.
+- Layout: {{LAYOUT}} as `references/scenes.md` sets it out ({{LAYOUT FRAME}}).
+  Window body text is at least 16 px, table text at least 17 px.
+- The film's world: {{METAPHOR}}. Its hand-off between scenes is the hero
+  motion: {{HERO MOTION}}. Enter and exit with it; do not invent another.
 
 ## Caption standard (mandatory)
 
@@ -72,9 +73,10 @@ Use exactly this copy:
 
 ## Scene recipe
 
-Show config in the real UI first, then visualize the process with real-looking
-data, then show a completion toast. Details:
-`~/.claude/skills/app-launch-video/references/scenes.md` and `motion.md`.
+Scene type: {{SCENE TYPE}} (`references/scenes.md`, "Scene types by mechanic").
+Show config in the real UI first, then the process in the film's world with
+real-looking data, then the result. Details: `references/scenes.md` and
+`references/motion.md` in the app-launch-video skill folder.
 
 ## Sound cues
 

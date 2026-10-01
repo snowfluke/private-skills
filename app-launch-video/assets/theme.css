@@ -1,16 +1,20 @@
-/* Film theme. Replace every token marked FROM-REPO with the value in the product's own theme
-   (CSS variables, Tailwind config). Keep the class names: scenes and caption.js depend on them. */
+/* Film theme. Every token marked FROM-DIRECTION comes from DIRECTION.json (palette, type); every token
+   marked FROM-REPO comes from the product's own theme. The magenta placeholders are deliberate: a film
+   that skips this step shows it in the first snapshot. Keep the class names: scenes and caption.js use them. */
 :root {
-  /* The film's canvas and ink: the brand's darkest color and its light text. FROM-REPO */
-  --canvas: #0b1220;
-  --ink: #f5f7fb;
-  --muted: #a3adbf;
-  --accent: #3b82f6;
+  /* The film's world. FROM-DIRECTION */
+  --canvas: #ff00ff;
+  --ink: #ff00ff;
+  --muted: #ff00ff;
+  --accent: #ff00ff;
+  --light: #ff00ff;
   --amber: #f2b443;
   --red: #ef5a50;
   /* The font stack the app really renders (check the computed style, not the config name). FROM-REPO */
   --ui: system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* A display face for the film's titles, chosen for the world. Falls back to the UI font. FROM-DIRECTION */
+  --display: var(--ui);
   /* The recreated app's own surface colors. FROM-REPO */
   --paper: #ffffff;
   --app-ink: #0a0a0a;
@@ -52,10 +56,10 @@
 .ripple { position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%;
   border: 3px solid var(--accent); opacity: 0; z-index: 49; }
 
-/* Caption standard: every explainer scene uses exactly this block on the left, nothing else.
+/* Caption block for the split-caption layout. Other layouts in references/scenes.md restyle .cap.
    label = "GROUP · NAME", title = 2-4 word action phrase without a period, desc = one factual sentence.
    Content windows live in the right region: x 800-1860, y 90-990. */
 .cap { position: absolute; left: 140px; top: 250px; width: 600px; }
 .cap-label { font-family: var(--mono); font-size: 22px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); opacity: 0; }
-.cap-title { font-family: var(--ui); font-weight: 800; font-size: 84px; line-height: 1.04; letter-spacing: -0.03em; color: var(--ink); margin-top: 22px; opacity: 0; }
+.cap-title { font-family: var(--display); font-weight: 800; font-size: 84px; line-height: 1.04; letter-spacing: -0.03em; color: var(--ink); margin-top: 22px; opacity: 0; }
 .cap-desc { font-family: var(--ui); font-weight: 400; font-size: 26px; line-height: 1.45; color: var(--muted); margin-top: 26px; max-width: 560px; opacity: 0; }
