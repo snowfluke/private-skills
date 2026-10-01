@@ -385,6 +385,8 @@ for cue in TL["cues"]:
         for k in range(int(name.split(":")[1])):
             place(sfx, fx_key(), at + k * BEAT / 4, 0.45, pan)
     else:
+        if name not in FX:
+            sys.exit(f"cue at beat {cue['beat']}: unknown sfx {name!r}; known: {', '.join(sorted(FX))}, type:N")
         fn, gain = FX[name]
         place(sfx, fn(), at, gain, pan)
 

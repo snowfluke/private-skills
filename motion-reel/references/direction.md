@@ -1,90 +1,114 @@
 # Direction: one film, one product
 
 Every film gets its own `DIRECTION.json` before any storyboard. It holds every
-creative choice and the reason for it. The skill has no default look, no
-default story and no default music: a choice you do not make in this file does
-not exist. `scripts/direction.py check` rejects a direction that is untraced or
-too close to an earlier film.
+creative choice, the reason for it, and the options it beat. The skill has no
+default look, story or music: a choice you do not make in this file does not
+exist. `scripts/direction.py check` rejects a direction that is untraced, padded,
+or too close to an earlier film.
 
 ## Where the facts come from
 
+Look in this order, and write in `PRODUCT.md` what each step found:
+
+1. The landing page. Find it in `package.json` `homepage` (unless it points
+   back to the repo), the README's links, or the repo's website field.
+2. The package page (npm, JSR, PyPI, crates.io), the docs site, or a live
+   demo or playground.
+3. The README and the docs index. When nothing above exists, the README is
+   the tone source. Say so in `PRODUCT.md`.
+
+Fetch pages with `ax` when it is installed, otherwise `curl`. When sources
+disagree, the code wins, then the newest document.
+
 | Read | For |
 |---|---|
-| `README.md`, the docs index, the docs' first pages | What it does, for whom, the words the team uses for it |
-| The landing page (the `homepage` field in `package.json`, the repo's website link, or a URL in the README). Fetch it with `ax` when it is installed, otherwise `curl`. | The tone words, the headline, the section titles: these are the product's own pillars |
-| The main screen and its components | The mechanic: what the product physically does to its input |
+| The pages above | The tone words, the headline, the section titles: the product's own pillars |
+| The main screen, or for a library the API a user calls | The mechanic: what the product physically does to its input |
 | Theme tokens, logo files, the font the UI renders | The brand colours, the mark, the type |
 
-Quote what you find. A field with `evidence` names a file in the app repo
-(`path` or `path#L12`) or a URL.
+A field with `evidence` names a file in the app repo (`path`, or `path#L12`
+inside the file) or a URL. The check reads the cited file: tone words and
+brand colours must appear in it. A URL source needs a `quote` copied from the
+page that holds the tone words.
+
+## Products without a screen
+
+A library, an SDK, a CLI or an API has no UI to recreate. Its real screens
+are:
+- the code a user writes, in an editor;
+- the terminal session;
+- the artefact it produces: an image with boxes drawn on it, a file, a response;
+- its demo or playground, when it has one.
+
+Film those. With no logo, set the name as a wordmark in the film's display
+face. Design a mark only when the client asks (`brand.md`).
 
 ## The fields
 
 ```json
 {
-  "product":  {"name": "...", "evidence": "README.md#L1"},
-  "mechanic": {"verb": "scan", "what": "reads text out of receipt photos", "evidence": "README.md#L5"},
-  "audience": {"value": "...", "evidence": "..."},
-  "tone":     {"words": ["private", "instant"], "evidence": "https://... (quote the words)"},
-  "metaphor": {"value": "...", "why": "..."},
-  "arc":      {"value": "journey", "why": "..."},
-  "hero_motion": {"family": "scan-reveal", "value": "...", "why": "..."},
-  "finale":   {"value": "zoom-out-reveal", "why": "..."},
-  "layout":   {"value": "lower-third", "why": "..."},
-  "palette":  {"brand": ["#..."], "invented": ["#...", "#...", "#..."], "canvas": "#...", "evidence": "src/theme.css#L3"},
-  "music":    {"bpm": 88, "root": "Eb", "mode": "dorian", "progression": ["i", "IV", "VII", "i"],
-               "preset": "minimal-tick", "swing": 0.1, "timbre": "analog", "why": "..."}
+  "format":   "film | loop",
+  "product":  {"name": "<name>", "evidence": "<file#Ln or URL>"},
+  "mechanic": {"verb": "<one verb>", "what": "<what it does to its input>", "evidence": "<...>"},
+  "audience": {"value": "<who>", "evidence": "<...>"},
+  "tone":     {"words": ["<word>", "<word>"], "evidence": "<...>", "quote": "<only for a URL>"},
+  "metaphor": {"value": "<the film's world>", "why": "<...>"},
+  "arc":      {"value": "<from arcs.md>", "why": "<...>", "rejected": ["<arc: reason>", "<arc: reason>"]},
+  "hero_motion": {"family": "<kebab-case>", "value": "<the motion>", "why": "<...>", "rejected": ["...", "..."]},
+  "finale":   {"value": "<from arcs.md>", "why": "<...>"},
+  "layout":   {"value": "<see below>", "why": "<...>"},
+  "palette":  {"brand": ["#..."], "invented": ["#...", "#...", "#..."], "canvas": "#...", "ink": "#...", "evidence": "<...>"},
+  "music":    {"bpm": 0, "root": "", "mode": "", "progression": [], "preset": "", "swing": 0, "timbre": "",
+               "why": "<...>", "rejected": ["...", "..."]}
 }
 ```
 
-Copy `music` into `timeline.json` unchanged. The score reads it from there.
+- Every `why` uses at least six different words and names the mechanic, a tone
+  word or the world it serves.
+- `rejected` lists two options you considered, each with its reason. Write it
+  before you settle: the first idea that comes to mind is usually the one every
+  film gets.
+- Copy `music` into `timeline.json` unchanged. The score reads it from there.
 
-### mechanic: the physical verb
+### mechanic
 
-Name what the product does to things, as a verb a child could act out:
-scan, match, sort, route, grow, stack, translate, listen, compress, stitch,
-watch, sign. Every motion choice below follows from this one word. A launch film
-that shows the verb happening is about the product. One that shows generic
-dashboards is about any product.
+Name what the product does to things, as one verb a child could act out. Every
+motion choice follows from it. A film that shows the verb happening is about
+the product. One that shows generic dashboards is about any product.
 
-### metaphor and theme
+### metaphor: the film's world
 
-Invent a world the verb lives in, then design the film inside it. The brand
-stays real; the world around it is new.
+Invent the world the verb lives in. The brand stays real; the world is new.
 
-| Verb | Possible worlds (invent your own) |
-|---|---|
-| scan, read | a darkroom where text develops; a lighthouse beam; an archive under a lamp |
-| match, reconcile | a loom where threads cross; a zipper closing; magnets snapping to pairs |
-| route, orchestrate | a rail yard with switching points; a pneumatic-tube office; a river delta |
-| grow, generate | a greenhouse; a printing press; crystals forming |
-| listen, speak | a waveform landscape; a radio tower; a choir of dots |
-| compress, pack | a suitcase packed by a robot; origami folding; a hydraulic press |
+1. List the nouns the product's own docs use: its inputs, outputs, users, places.
+2. For each, write one physical place or craft where that thing is handled by
+   hand: a workshop, a trade, a machine, a natural process.
+3. Write five candidate worlds. Cross out the first two that came to mind and
+   any world in your history. Pick the one whose motion shows the verb most
+   plainly.
 
-The world sets the canvas, the texture (paper grain, film grain, blueprint
-lines, glass), the shapes, and how things enter and leave.
+The world sets the canvas, the texture (paper grain, film grain, chalk,
+glass), the shapes, and how things enter and leave. Example, from a product no
+film here was made for: a scheduling tool for beekeepers. Its nouns are hives,
+inspections and seasons. The world is a honeycomb frame lifted from a hive.
+Each scheduled inspection fills one cell with wax.
 
 ### arc and finale
 
-Pick one arc from `arcs.md` for the product's shape, and say why in one line.
-Pick the finale from that arc's list.
+Pick one arc from `arcs.md` for the product's shape. Pick the finale from that
+arc's row. A loop (`"format": "loop"`) always ends on `loop-to-start`.
 
 ### hero_motion: the signature move
 
-One motion device that is the verb made visible. It carries the transitions of
-the whole film. Name its `family` in a short kebab-case term and describe it.
+One motion device that is the verb made visible inside the world. It carries
+every transition. Find it by acting the verb out with the world's objects. In
+the beekeeping world, an inspection "fills": wax flows into a cell, and the
+filled cell's shape becomes the next frame. Name its `family` in a short
+kebab-case term.
 
-| Verb | Hero motion examples |
-|---|---|
-| scan | a light bar sweeps and leaves the next scene behind it |
-| match | two halves slide together and lock with a snap, and the seam becomes the next frame's edge |
-| route | a packet travels a line, and the line bends to become the next layout |
-| grow | a seed point branches into the next screen's structure |
-| listen | a waveform flattens into a horizon line that the next scene stands on |
-| compress | the frame folds in half twice and unfolds into the next scene |
-
-The motion recipes in `motion.md` are infrastructure: camera, cursor, seek
-safety. Copy them. The hero motion is invented per film.
+Your skill's motion recipes (`motion.md` in app-launch-video, the helpers in
+`timeline.ts` in motion-reel) are infrastructure: timing, camera, seek safety.
+The hero motion is invented per film.
 
 ### layout
 
@@ -99,37 +123,33 @@ safety. Copy them. The hero motion is invented per film.
 
 ### palette
 
-`brand` holds the product's real colours from the repo. `invented` holds at
-least three colours of the film's world, chosen to sit with the brand: a canvas,
-a light, and an accent. Pick them from the metaphor (darkroom: amber safelight
-on near-black; greenhouse: leaf green on chalk). Keep text contrast at 4.5:1 or
-more. Write the canvas as `canvas`.
+`brand` holds the product's real colours, found in the cited file. `invented`
+holds at least three colours of the film's world, chosen from its materials.
+`canvas` is the background. `ink` is the text colour on it, at 4.5:1 contrast
+or more; the check measures it. A brand colour that fails on the canvas is
+an accent for shapes, never for text.
 
 ### music
 
-| Tone words | Tempo | Mode | Preset |
-|---|---|---|---|
-| calm, careful, private, precise | 70 to 95 | dorian, minor, lydian | `minimal-tick`, `ambient-drift` |
-| friendly, simple, open | 95 to 115 | major, mixolydian | `broken-beat`, `motorik` |
-| fast, bold, powerful, automated | 118 to 135 | minor, phrygian, mixolydian | `pulse-house`, `half-time` |
-| playful, creative | 100 to 125 | lydian, major | `broken-beat`, `pulse-house` |
-| technical, relentless, scale | 120 to 140 | minor, dorian | `motorik`, `half-time` |
+Choose each axis on its own from the tone and the world. Do not take a row of
+choices as a set.
 
-- Write the progression as 2 to 8 roman numerals. The mode sets each chord's quality.
-- Set `swing` from 0 to 0.35 for a human feel.
-- Pick the `timbre` for the sound effects from the world:
-  - glass for light and optics
-  - wood for paper and craft
-  - analog for warmth
-  - digital for code
-  - soft for calm
-  - metal for machines
-- `music.py` lists every allowed value.
+| Axis | Choose from | Guide |
+|---|---|---|
+| Tempo | 60 to 160 BPM | the energy of the tone: slower for calm or careful, faster for automated or bold. For a loop, pick a tempo that fills the length in whole bars (`seconds x bpm / 240` is whole). |
+| Mode | major, minor, dorian, mixolydian, lydian, phrygian | the mood: lydian floats, dorian is cool and steady, mixolydian is open, phrygian is tense |
+| Progression | 2 to 8 roman numerals | the motion: two chords for a steady machine, four or more for a journey |
+| Preset | pulse-house, broken-beat, half-time, motorik, minimal-tick, ambient-drift | the world's rhythm: a production line, a heartbeat, footsteps, wind |
+| Swing | 0 to 0.35 | 0 for machines, 0.1 to 0.2 for people |
+| Timbre | glass, wood, analog, digital, soft, metal | the world's materials: what its objects would sound like when they touch |
+
+`music.py` lists every allowed value. The check counts tempo, key, preset and
+timbre against your history.
 
 ## Check, then record
 
 ```bash
-python3 <this skill's dir>/scripts/direction.py check DIRECTION.json --repo <app repo> --storyboard STORYBOARD.md
+python3 <skill>/scripts/direction.py check DIRECTION.json --repo <app repo> --storyboard STORYBOARD.md
 ```
 
 Fix every error. A direction too close to an earlier film names the shared
@@ -137,5 +157,8 @@ choices: change all but two. After delivery, record the film so the next one
 differs from it:
 
 ```bash
-python3 <this skill's dir>/scripts/direction.py record DIRECTION.json --label "<product> <date>"
+python3 <skill>/scripts/direction.py record DIRECTION.json --label "<product> <date>"
 ```
+
+Directions you try but never deliver are not recorded. When you make several
+films in one session, record each accepted one before you start the next.

@@ -29,4 +29,5 @@ out of the film.
 | `loop-to-start` | The last frame becomes the first one, so the film can loop. |
 
 The opening, the middle and the finale all use the film's hero motion from
-`DIRECTION.json` for their transitions.
+`DIRECTION.json` for their transitions. A loop (`"format": "loop"`) ends on
+`loop-to-start` whatever its arc, so its last frame is its first.

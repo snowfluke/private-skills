@@ -29,7 +29,7 @@ Check these before anything else. Stop and report what is missing.
 | Python 3 with numpy and scipy | `uv --version` or `python3 -c "import numpy, scipy"` | `uv run --with numpy --with scipy ...`, or a venv. |
 | Pillow (optional, labels on cue sheets) | `python3 -c "import PIL"` | `pip install pillow`. |
 | Voiceover (when the film has one): a venv with `kokoro-onnx` and `soundfile`, plus system `espeak-ng` | `<venv>/bin/python -c "import kokoro_onnx"` and `brew --prefix espeak-ng` | `uv venv .tts && uv pip install --python .tts/bin/python kokoro-onnx soundfile`; `brew install espeak-ng`. |
-| Tween probe: `puppeteer-core` and `chrome-headless-shell` | `node tools/hold_probe.mjs` reports what it cannot find | `npx @puppeteer/browsers install chrome-headless-shell@stable`, or set `PUPPETEER_CORE` / `CHROME_BIN`. |
+| Tween probe (check once the project exists): `puppeteer-core` and `chrome-headless-shell` | `node tools/hold_probe.mjs` reports what it cannot find | `npx @puppeteer/browsers install chrome-headless-shell@stable`, or set `PUPPETEER_CORE` / `CHROME_BIN`. |
 
 Then load `/hyperframes-core` (the composition contract) and `/hyperframes-cli`
 (check, snapshot, render). Load `/hyperframes-keyframes` for motion that is not
@@ -44,7 +44,7 @@ file path or URL) or "missing".
 | Find | Where to look |
 |---|---|
 | What it does, for whom, in the team's own words | README, docs index |
-| Tone and pillars | The landing page: headline, section titles, the adjectives it uses. Find its URL in `package.json` `homepage`, the README, or the repo's website field. Fetch it with `ax`, or `curl`. |
+| Tone and pillars | The landing page, the package page, the docs site or the demo, in the order `references/direction.md` gives; the README when none exists. Fetch pages with `ax`, or `curl`. |
 | The mechanic: the physical verb | The main screen, the core loop (3 to 6 stages), what happens to the input |
 | Feature catalog | Registries, settings pages, docs sidebar |
 | Brand | Logo files, slogan and tagline strings, principle pages |
@@ -52,7 +52,9 @@ file path or URL) or "missing".
 | Real labels and data | Button text, dialog titles, toasts, fixtures, seeds |
 
 Never fill a missing brand item with an invented one. The brand is real; the
-film's world around it is invented.
+film's world around it is invented. A library, SDK or CLI has no UI: film its
+code, its terminal and its output (`references/direction.md`, "Products without
+a screen").
 
 ## 2. Direction
 
@@ -92,14 +94,35 @@ the same message, so the client can redirect it before you build.
 ## 4. Plan
 
 Write `STORYBOARD.md` and `timeline.json` before any scene HTML. Map the
-product's own steps onto the chosen arc. Each row names the scene, its scene
-type (`references/scenes.md`), the hand-off object into the next scene, and
-the sound. Write all captions in one copy table.
+product's own steps onto the chosen arc in one table, one row per scene:
 
-Plan scenes as `{id, src, track, start, dur}` rows in `timeline.json`, with the
-`music` block copied from `DIRECTION.json`. That file is the single source of
-timing. The index hosts and the score both read it. Run the direction check
-again with `--storyboard STORYBOARD.md`.
+```markdown
+| Time | Scene | Type | On screen | Hand-off | Sound |
+|---|---|---|---|---|---|
+| 0.0-4.2 | hook | inspect | the real product element seen | the object that carries into the next scene | the cue names |
+```
+
+`Type` is a scene type from `references/scenes.md`. Every row has an `On
+screen` and a `Hand-off`; the check rejects a row without them. Write all
+captions in a second table: scene, label, title, description.
+
+`timeline.json` is the single source of timing. The index hosts and the score
+both read it:
+
+```json
+{
+  "width": 1920, "height": 1080,
+  "music": { "...": "copied from DIRECTION.json" },
+  "score": { "reveal": "<scene id>", "groove": "<scene id>", "lockup": ["<scene id>", 2.5], "lufs": -15 },
+  "scenes": [ { "id": "hook", "src": "compositions/hook.html", "track": 1, "start": 0, "dur": 4.2 } ]
+}
+```
+
+- `reveal` is the scene where the music first opens up: where the product's name or its main screen first appears.
+- `groove` is where the product-at-work beat starts.
+- `lockup` is the scene, and the offset into it, where the final chord lands under the mark.
+
+Run the direction check again with `--storyboard STORYBOARD.md`.
 
 ## 5. Build
 
@@ -158,7 +181,7 @@ npx --yes hyperframes@0.8.77 snapshot --describe false --no-end -o snaps-<id> --
 - Snapshot every changed scene at its first 0.3 s, mid-action, mid-flight of
   anything that moves, and its last 0.4 s. Read the images. Look for overlaps,
   clipped text, empty boxes, serif fallback text, dark-on-dark, and magenta.
-- Build the score: `uv run --with numpy --with scipy python audio/score.py`.
+- Build the score: `uv run -q --with numpy --with scipy python audio/score.py`.
 - Render on the GPU when there is one:
   `npx --yes hyperframes@0.8.77 render --quality delivery --fps 30 --gpu --output renders/raw.mp4`.
   If `--gpu` fails, render again without it. Then normalize loudness

@@ -23,8 +23,8 @@ it yourself. Do not put a menu of logos to the client.
 ## Palette
 
 The film's palette is in `DIRECTION.json`: the brand colours from the repo
-plus at least three invented for the film's world. Map them to the tokens in
-`assets/theme.css`:
+plus at least three invented for the film's world. Map them to the theme
+tokens (`assets/theme.css` in app-launch-video, `theme.ts` in motion-reel):
 
 | Token | Role |
 |---|---|
@@ -48,8 +48,9 @@ snapshot every scene once. A missed colour in one dialog reads as a bug.
 
 ## Fonts
 
-A rebrand may change the font. Vendor it: `python3 tools/vendor_fonts.py
-"<UI family>:400,500,600,700,800" "<mono family>:400,500,600,700"`.
+A rebrand may change the font. Vendor it: in app-launch-video, `python3
+tools/vendor_fonts.py "<UI family>:400,500,600,700,800" "<mono family>:400,500,600,700"`;
+in motion-reel, put the font files in `public/fonts/` and list them in `fonts.ts`.
 Name the families only in `--ui` and `--mono`. After a font change,
 re-snapshot every layout that depends on text width: wordmarks, dialog widths
 and wide tables.
@@ -61,6 +62,6 @@ and wide tables.
 - Grep for the old name and the old logo files everywhere: compositions,
   `index.html` title, `meta.json`, `package.json`, the voiceover script and the
   credits.
-- Redesign the logo intro for the new mark's shape (`scenes.md`, Logo intro).
+- Redesign the mark's entrance for the new mark's shape.
 - The tagline is the client's copy. When it must change, offer 3 or 4 short
   options with one recommended, and let the client pick.

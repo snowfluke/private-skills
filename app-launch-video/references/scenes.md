@@ -78,6 +78,17 @@ earns one long scene on track 1, with step scenes cutting in over it on
 track 2. Build it from the app's real components and icons. Move the camera
 with one eased zoom at a time (`motion.md`).
 
+## Products without a screen
+
+For a library, an SDK, a CLI or an API, the real screens are:
+- the editor with the code a user writes, in the product's own API names;
+- the terminal session;
+- the artefact the product makes, shown as it forms;
+- the demo or playground, when there is one.
+
+Use the same scene types: the "config" is the call and its options, and the
+"process" is the artefact forming in the film's world.
+
 ## Pages never load
 
 A recreated page arrives with its body. Rebuild what sits under the header

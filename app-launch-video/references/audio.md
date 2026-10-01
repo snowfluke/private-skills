@@ -35,7 +35,7 @@ Optional timing in `timeline.json`:
 "score": { "reveal": "s3", "groove": "build", "lockup": ["finale", 10.84], "lufs": -15 }
 ```
 
-- `reveal` is the scene where the logo lands (a hit on the tonic chord).
+- `reveal` is the scene where the music first opens up, with a hit on the tonic chord: where the product's name or its main screen first appears.
 - `groove` is where the product-at-work beat starts.
 - `lockup` is the scene and the offset where the final chord lands under the
   logo lockup.
